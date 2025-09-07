@@ -1,0 +1,8 @@
+// good0.bminor
+// Verificar que todas las palabras de tipos de datos y las declaraciones se reconozcan correctamente
+
+a: integer = 10;
+b: float = 3.14;
+c: char = 'Z';
+d: string = "Hola, B-Minor!";
+e: boolean = true;

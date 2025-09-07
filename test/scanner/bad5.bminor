@@ -1,0 +1,4 @@
+integer main() {
+    integer $var = 10;
+    return $var;
+}

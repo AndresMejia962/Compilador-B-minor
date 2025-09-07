@@ -1,0 +1,7 @@
+string path = "C:\\Users\\Isabela\\Documents\\file.txt";
+string quote = "Ella dijo: \"Hola\" y se fue.";
+
+//Lo esperado:
+//STRING_LITERAL con C:\\Users\\Isabela\\Documents\\file.txt
+//STRING_LITERAL con Ella dijo: "Hola" y se fue.
+

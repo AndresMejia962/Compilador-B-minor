@@ -1,0 +1,2 @@
+float z = 7#5;
+//El caracter # no está en el alfabeto del lenguaje, debe marcarse como token desconocido o error léxico.

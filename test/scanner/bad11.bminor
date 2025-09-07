@@ -1,0 +1,3 @@
+int __var123 = 45;
+float x_1_2 = 0.99e-10;
+//Si el lexer no maneja bien subrayados iniciales, puede reventar.no soporta exponentes (e o E), también fallará.

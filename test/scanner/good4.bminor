@@ -1,0 +1,4 @@
+// good4.bminor
+// Verificar si la gramatica de los bloques de comentarios no afectan a codigo que pueda estar entre ellos
+
+/* bloque de comentario */ x : integer = 10 /* bloque de comentario */
