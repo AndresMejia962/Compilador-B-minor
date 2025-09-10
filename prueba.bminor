@@ -1,3 +1,5 @@
+// Prueba provisional para el parser
+
 main: function integer () = {
     x: integer = 5;
     

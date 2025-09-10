@@ -1,3 +1,5 @@
+// Prueba provisional para el parser
+
 // Declaración de una variable global
 x: integer = 10;
 
