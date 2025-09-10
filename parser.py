@@ -1,422 +1,279 @@
-# grammar.py
+# parser.py
 import logging
 import sly
 from rich import print
 
-from bminor_lexer  import Lexer
+from bminor_lexer import Lexer
 from errors import error, errors_detected
-from model  import *
-
+from model import *
 
 def _L(node, lineno):
-	node.lineno = lineno
-	return node
-
+    if node:
+        node.lineno = lineno
+    return node
 
 class Parser(sly.Parser):
-	log = logging.getLogger()
-	log.setLevel(logging.ERROR)
-	expected_shift_reduce = 1
-	debugfile='grammar.txt'
+    log = logging.getLogger()
+    log.setLevel(logging.ERROR)
+    debugfile = 'parser.log'
 
-	tokens = Lexer.tokens
+    tokens = Lexer.tokens
 
-	@_("decl_list")
-	def prog(self, p):
-		return Program(p.decl_list)
+    @_("decl_list")
+    def prog(self, p):
+        return Program(p.decl_list)
 
-	# Declarations
+    @_("decl decl_list")
+    def decl_list(self, p):
+        return [p.decl] + p.decl_list if p.decl else p.decl_list
+    @_("empty")
+    def decl_list(self, p):
+        return []
 
-	@_("decl decl_list")
-	def decl_list(self, p):
-		return [ p.decl ] + p.decl_list
+    # Declaraciones
+    @_("ID ':' type_simple ';'")
+    def decl(self, p):
+        return _L(VarDecl(p.ID, p.type_simple), p.lineno)
+    @_("ID ':' type_array_sized ';'")
+    def decl(self, p):
+        return _L(ArrayDecl(p.ID, p.type_array_sized), p.lineno)
 
-	@_("empty")
-	def decl_list(self, p):
-		return [ ]
+    @_("ID ':' type_func ';'")
+    def decl(self, p):
+        func_decl = p.type_func
+        func_decl.name = p.ID
+        return _L(func_decl, p.lineno)
 
-	@_("ID ':' type_simple ';'")
-	def decl(self, p):
-		...
+    @_("decl_init")
+    def decl(self, p):
+        return p.decl_init
+    
+    # Declaraciones con Inicialización
+    @_("ID ':' type_simple '=' expr ';'")
+    def decl_init(self, p):
+        return _L(VarDecl(p.ID, p.type_simple, p.expr), p.lineno)
+    @_("ID ':' type_array_sized '=' '{' opt_expr_list '}' ';'")
+    def decl_init(self, p):
+        return _L(ArrayDecl(p.ID, p.type_array_sized, value=p.opt_expr_list), p.lineno)
 
-	@_("ID ':' type_array_sized ';'")
-	def decl(self, p):
-		...
+    @_("ID ':' type_func '=' '{' opt_stmt_list '}'")
+    def decl_init(self, p):
+        func_decl = p.type_func
+        func_decl.name = p.ID
+        func_decl.body = _L(BlockStmt(p.opt_stmt_list), p.lineno)
+        return _L(func_decl, p.lineno)
 
-	@_("ID ':' type_func ';'")
-	def decl(self, p):
-		...
+    # Sentencias
+    @_("stmt_list")
+    def opt_stmt_list(self, p):
+        return p.stmt_list
+    @_("empty")
+    def opt_stmt_list(self, p):
+        return []
 
-	@_("decl_init")
-	def decl(self, p):
-		...
+    @_("stmt stmt_list")
+    def stmt_list(self, p):
+        return [p.stmt] + p.stmt_list
+    @_("stmt")
+    def stmt_list(self, p):
+        return [p.stmt]
 
-	@_("ID ':' type_simple '=' expr ';'")
-	def decl_init(self, p):
-		...
+    @_("open_stmt", "closed_stmt")
+    def stmt(self, p):
+        return p[0]
+    @_("WHILE '(' expr ')' stmt")
+    def stmt(self, p):
+        return _L(WhileStmt(p.expr, p.stmt), p.lineno)
+    @_("DO stmt WHILE '(' expr ')' ';'")
+    def stmt(self, p):
+        return _L(DoWhileStmt(p.stmt, p.expr), p.lineno)
 
-	@_("ID ':' type_array_sized '=' '{' opt_expr_list '}' ';'")
-	def decl_init(self, p):
-		...
+    @_("if_stmt_closed", "for_stmt_closed", "simple_stmt")
+    def closed_stmt(self, p):
+        return p[0]
+    @_("if_stmt_open", "for_stmt_open")
+    def open_stmt(self, p):
+        return p[0]
 
-	@_("ID ':' type_func '=' '{' opt_stmt_list '}'")
-	def decl_init(self, p):
-		...
-	
-	# Statements
-	
-	@_("stmt_list")
-	def opt_stmt_list(self, p):
-		...
+    @_("IF '(' expr ')' closed_stmt ELSE closed_stmt")
+    def if_stmt_closed(self, p):
+        return _L(IfStmt(p.expr, p.closed_stmt0, p.closed_stmt1), p.lineno)
+    @_("IF '(' expr ')' stmt")
+    def if_stmt_open(self, p):
+        return _L(IfStmt(p.expr, p.stmt), p.lineno)
+    @_("IF '(' expr ')' closed_stmt ELSE open_stmt")
+    def if_stmt_open(self, p):
+        return _L(IfStmt(p.expr, p.closed_stmt, p.open_stmt), p.lineno)
 
-	@_("empty")
-	def opt_stmt_list(self, p):
-		...
+    @_("FOR '(' opt_expr ';' opt_expr ';' opt_expr ')' open_stmt")
+    def for_stmt_open(self, p):
+        return _L(ForStmt(p.opt_expr0, p.opt_expr1, p.opt_expr2, p.open_stmt), p.lineno)
+    @_("FOR '(' opt_expr ';' opt_expr ';' opt_expr ')' closed_stmt")
+    def for_stmt_closed(self, p):
+        return _L(ForStmt(p.opt_expr0, p.opt_expr1, p.opt_expr2, p.closed_stmt), p.lineno)
 
-	@_("stmt stmt_list")
-	def stmt_list(self, p):
-		...
+    @_("print_stmt", "return_stmt", "block_stmt", "decl", "expr ';'")
+    def simple_stmt(self, p):
+        return p[0]
+    @_("PRINT expr_list ';'")
+    def print_stmt(self, p):
+        return _L(PrintStmt(p.expr_list), p.lineno)
+    @_("RETURN expr ';'")
+    def return_stmt(self, p):
+        return _L(ReturnStmt(p.expr), p.lineno)
+    @_("RETURN ';'")
+    def return_stmt(self, p):
+        return _L(ReturnStmt(), p.lineno)
+    @_("'{' opt_stmt_list '}'")
+    def block_stmt(self, p):
+        return _L(BlockStmt(p.opt_stmt_list), p.lineno)
 
-	@_("stmt")
-	def stmt_list(self, p):
-		...
+    # Expresiones (Reglas de precedencia)
+    @_("expr1")
+    def expr(self, p): return p.expr1
+    @_("lval '=' expr1")
+    def expr1(self, p): return _L(Assignment(p.lval, p.expr1), p.lineno)
+    @_("expr2")
+    def expr1(self, p): return p.expr2
+    @_("expr2 LOR expr3")
+    def expr2(self, p): return _L(BinOper('||', p.expr2, p.expr3), p.lineno)
+    @_("expr3")
+    def expr2(self, p): return p.expr3
+    @_("expr3 LAND expr4")
+    def expr3(self, p): return _L(BinOper('&&', p.expr3, p.expr4), p.lineno)
+    @_("expr4")
+    def expr3(self, p): return p.expr4
+    @_("expr4 EQ expr5", "expr4 NE expr5", "expr4 LT expr5", "expr4 LE expr5", "expr4 GT expr5", "expr4 GE expr5")
+    def expr4(self, p): return _L(BinOper(p[1], p.expr4, p.expr5), p.lineno)
+    @_("expr5")
+    def expr4(self, p): return p.expr5
+    @_("expr5 '+' expr6", "expr5 '-' expr6")
+    def expr5(self, p): return _L(BinOper(p[1], p.expr5, p.expr6), p.lineno)
+    @_("expr6")
+    def expr5(self, p): return p.expr6
+    @_("expr6 '*' expr7", "expr6 '/' expr7", "expr6 '%' expr7")
+    def expr6(self, p): return _L(BinOper(p[1], p.expr6, p.expr7), p.lineno)
+    @_("expr7")
+    def expr6(self, p): return p.expr7
+    @_("expr7 '^' expr8")
+    def expr7(self, p): return _L(BinOper('^', p.expr7, p.expr8), p.lineno)
+    @_("expr8")
+    def expr7(self, p): return p.expr8
+    
+    # Expresiones Unarias y de Incremento/Decremento
+    @_("'-' expr8", "'!' expr8")
+    def expr8(self, p): return _L(UnaryOper(p.expr8, p[0]), p.lineno)
+    @_("INC expr9")
+    def expr8(self, p): return _L(PreInc(expr=p.expr9), p.lineno)
+    @_("DEC expr9")
+    def expr8(self, p): return _L(PreDec(expr=p.expr9), p.lineno)
+    @_("expr9")
+    def expr8(self, p): return p.expr9
+    @_("expr9 INC")
+    def expr9(self, p): return _L(PostInc(expr=p.expr9), p.lineno)
+    @_("expr9 DEC")
+    def expr9(self, p): return _L(PostDec(expr=p.expr9), p.lineno)
+    @_("group")
+    def expr9(self, p): return p.group
 
-	@_("open_stmt")
-	@_("closed_stmt")
-	def stmt(self, p):
-		...
+    # Expresiones Agrupadas y Factores
+    @_("'(' expr ')'")
+    def group(self, p): return p.expr
+    @_("ID '(' opt_expr_list ')'")
+    def group(self, p): return _L(FuncCall(p.ID, p.opt_expr_list), p.lineno)
+    @_("lval")
+    def group(self, p): return p.lval
+    @_("factor")
+    def group(self, p): return p.factor
 
-	@_("if_stmt_closed")
-	@_("for_stmt_closed")
-	@_("simple_stmt")
-	def closed_stmt(self, p):
-		...
-		
-	@_("if_stmt_open",
-	   "for_stmt_open")
-	def open_stmt(self, p):
-		...
-		
-	@_("IF '(' opt_expr ')'")
-	def if_cond(self, p):
-		...
+    @_("ID")
+    def lval(self, p): return _L(VarLocation(p.ID), p.lineno)
+    @_("lval '[' expr ']'")
+    def lval(self, p): return _L(ArraySubscript(p.lval, p.expr), p.lineno)
 
-	@_("if_cond closed_stmt ELSE closed_stmt")
-	def if_stmt_closed(self, p):
-		...
-	
-	@_("if_cond stmt")	
-	def if_stmt_open(self, p):
-		...
-		
-	@_("if_cond closed_stmt ELSE if_stmt_open")	
-	def if_stmt_open(self, p):
-		...
+    @_("INTEGER_LITERAL")
+    def factor(self, p): return _L(Integer(p[0]), p.lineno)
+    @_("FLOAT_LITERAL")
+    def factor(self, p): return _L(Float(p[0]), p.lineno)
+    @_("CHAR_LITERAL")
+    def factor(self, p): return _L(Char(p[0]), p.lineno)
+    @_("STRING_LITERAL")
+    def factor(self, p): return _L(String(p[0]), p.lineno)
+    @_("TRUE")
+    def factor(self, p): return _L(Boolean(True), p.lineno)
+    @_("FALSE")
+    def factor(self, p): return _L(Boolean(False), p.lineno)
 
-	@_("FOR '(' opt_expr ';' opt_expr ';' opt_expr ')'")
-	def for_header(self, p):
-		...
+    # Listas
+    @_("expr_list")
+    def opt_expr_list(self, p): return p.expr_list
+    @_("empty")
+    def opt_expr_list(self, p): return []
+    @_("expr ',' expr_list")
+    def expr_list(self, p): return [p.expr] + p.expr_list
+    @_("expr")
+    def expr_list(self, p): return [p.expr]
 
-	@_("for_header open_stmt")
-	def for_stmt_open(self, p):
-		...
-		
-	@_("for_header closed_stmt")
-	def for_stmt_closed(self, p):
-		...
-		
-	# Simple statements are not recursive
-	
-	@_("print_stmt")
-	@_("return_stmt")
-	@_("block_stmt")
-	@_("decl")
-	@_("expr ';'")
-	def simple_stmt(self, p):
-		...
+    @_("param_list")
+    def opt_param_list(self, p): return p.param_list
+    @_("empty")
+    def opt_param_list(self, p): return []
+    @_("param_list ',' param")
+    def param_list(self, p): return p.param_list + [p.param]
+    @_("param")
+    def param_list(self, p): return [p.param]
+    @_("ID ':' type_simple")
+    def param(self, p): return _L(Param(p.ID, p.type_simple), p.lineno)
+    @_("ID ':' type_array")
+    def param(self, p): return _L(Param(p.ID, p.type_array), p.lineno)
 
-	@_("PRINT opt_expr_list ';'")
-	def print_stmt(self, p):
-		...
-		
-	@_("RETURN opt_expr ';'")
-	def return_stmt(self, p):
-		...
+    # Tipos
+    @_("INTEGER", "FLOAT", "BOOLEAN", "CHAR", "STRING", "VOID")
+    def type_simple(self, p): return _L(SimpleType(p[0]), p.lineno)
+    @_("ARRAY '[' ']' type_simple")
+    def type_array(self, p): return _L(ArrayType(p.type_simple), p.lineno)
+    @_("ARRAY '[' expr ']' type_simple")
+    def type_array_sized(self, p): return _L(ArrayType(p.type_simple, p.expr), p.lineno)
+    
+    # --- CAMBIO 3: Se corrigió la creación del objeto FuncDecl ---
+    # Se cambió el argumento 'return_type' por 'type' para que coincida con la
+    # definición de la clase en model.py.
+    @_("FUNCTION type_simple '(' opt_param_list ')'")
+    def type_func(self, p):
+        return FuncDecl(name=None, type=p.type_simple, params=p.opt_param_list)
 
-	@_("'{' stmt_list '}'")
-	def block_stmt(self, p):
-		...
-	
-	# Expressions
-	
-	@_("empty")
-	def opt_expr_list(self, p):
-		...
+    @_("empty")
+    def opt_expr(self, p): return None
+    @_("expr")
+    def opt_expr(self, p): return p.expr
+    @_("")
+    def empty(self, p): pass
 
-	@_("expr_list")
-	def opt_expr_list(self, p):
-		...
-		
-	@_("expr ',' expr_list")
-	def expr_list(self, p):
-		...
-		
-	@_("expr")
-	def expr_list(self, p):
-		...
-
-	# TODO
-	@_("empty")
-	def opt_expr(self, p):
-		...
-
-	@_("expr")
-	def opt_expr(self, p):
-		...
-
-	@_("expr1")
-	def expr(self, p):
-		...
-
-	@_("lval '=' expr1")
-	def expr1(self, p):
-		...
-		
-	@_("expr2")
-	def expr1(self, p):
-		...
-
-	@_("ID")
-	def lval(self, p):
-		...
-
-	@_("ID index")
-	def lval(self, p):
-		...
-
-	@_("expr2 LOR expr3")
-	def expr2(self, p):
-		...
-
-	@_("expr3")
-	def expr2(self, p):
-		...
-
-	@_("expr3 LAND expr4")
-	def expr3(self, p):
-		...
-
-	@_("expr4")
-	def expr3(self, p):
-		...
-
-	@_("expr4 EQ expr5")
-	@_("expr4 NE expr5")
-	@_("expr4 LT expr5")
-	@_("expr4 LE expr5")
-	@_("expr4 GT expr5")
-	@_("expr4 GE expr5")
-	def expr4(self, p):
-		return BinOper(p[1], p.expr4, p.expr5)
-
-	@_("expr5")
-	def expr4(self, p):
-		...
-
-	@_("expr5 '+' expr6")
-	@_("expr5 '-' expr6")
-	def expr5(self, p):
-		return BinOper(p[1], p.expr5, p.expr6)
-
-	@_("expr6")
-	def expr5(self, p):
-		...
-
-	@_("expr6 '*' expr7")
-	@_("expr6 '/' expr7")
-	@_("expr6 '%' expr7")
-	def expr6(self, p):
-		return BinOper(p[1], p.expr6, p.expr7)
-
-	@_("expr7")
-	def expr6(self, p):
-		...
-
-	@_("expr7 '^' expr8")
-	def expr7(self, p):
-		return BinOper(p[1], p.expr7, p.expr8)
-
-	@_("expr8")
-	def expr7(self, p):
-		...
-		
-	@_("'-' expr8")
-	@_("'!' expr8")
-	def expr8(self, p):
-		return UnaryOper(p[0], p.expr8)
-		
-	@_("expr9")
-	def expr8(self, p):
-		...
-
-	@_("expr9 INC")
-	def expr9(self, p):
-		...
-		
-	@_("expr9 DEC")
-	def expr9(self, p):
-		...
-		
-	@_("group")
-	def expr9(self, p):
-		...
-		
-	@_("'(' expr ')'")
-	def group(self, p):
-		...
-		
-	@_("ID '(' opt_expr_list ')'")
-	def group(self, p):
-		...
-
-	@_("ID index")
-	def group(self, p):
-		...
-	
-	@_("factor")
-	def group(self, p):
-		...
-		
-	@_("'[' expr ']'")
-	def index(self, p):
-		...
-
-	@_("ID")
-	def factor(self, p):
-		...
-
-	@_("INTEGER_LITERAL")
-	def factor(self, p):
-		return _L(Integer(p.INTEGER_LITERAL), p.lineno)
-
-	@_("FLOAT_LITERAL")
-	def factor(self, p):
-		return _L(Float(p.FLOAT_LITERAL), p.lineno)
-
-	@_("CHAR_LITERAL")
-	def factor(self, p):
-		...
-		
-	@_("STRING_LITERAL")
-	def factor(self, p):
-		...
-		
-	@_("TRUE")
-	@_("FALSE")
-	def factor(self, p):
-		return _L(Boolean(p[0] == 'true'), p.lieno)
-
-	# Types
-
-	@_("INTEGER")
-	@_("FLOAT")
-	@_("BOOLEAN")
-	@_("CHAR")
-	@_("STRING")
-	@_("VOID")
-	def type_simple(self, p):
-		return p[0]
-	
-	@_("ARRAY '[' ']' type_simple")
-	@_("ARRAY '[' ']' type_array")
-	def type_array(self, p):
-		...
-
-	@_("ARRAY index type_simple")
-	@_("ARRAY index type_array_sized")
-	def type_array_sized(self, p):
-		...
-
-	@_("FUNCTION type_simple '(' opt_param_list ')'")
-	@_("FUNCTION type_array_sized '(' opt_param_list ')'")
-	def type_func(self, p):
-		...
-
-	@_("empty")
-	def opt_param_list(self, p):
-		...
-
-	@_("param_list")
-	def opt_param_list(self, p):
-		...
-
-	@_("param_list ',' param")
-	def param_list(self, p):
-		...
-
-	@_("param")
-	def param_list(self, p):
-		...
-	
-	@_("ID ':' type_simple")
-	def param(self, p):
-		...
-
-	@_("ID ':' type_array")
-	def param(self, p):
-		...
-
-	@_("ID ':' type_array_sized")
-	def param(self, p):
-		...
-
-	@_("")
-	def empty(self, p):
-		...
-
-	def error(self, p):
-		lineno = p.lineno if p else 'EOF'
-		value = repr(p.value) if p else 'EOF'
-		error(f'Syntax error at {value}', lineno)
-
-
-
-# Convertir el AST a una representación JSON para mejor visualización
-def ast_to_dict(node):
-	if isinstance(node, list):
-		return [ast_to_dict(item) for item in node]
-	elif hasattr(node, "__dict__"):
-		return {key: ast_to_dict(value) for key, value in node.__dict__.items()}
-	else:
-		return node
+    def error(self, p):
+        if p:
+            error(f"Error de sintaxis en '{p.value}'", p.lineno)
+        else:
+            error("Error de sintaxis al final del archivo (EOF)")
 
 def parse(txt):
-	l = Lexer()
-	p = Parser()
-
-	return p.parse(l.tokenize(txt))
+    l = Lexer()
+    p = Parser()
+    return p.parse(l.tokenize(txt))
 
 if __name__ == '__main__':
-	import sys, json
-	
-	if sys.platform != 'ios':
-
-		if len(sys.argv) != 2:
-			raise SystemExit("Usage: python gparse.py <filename>")
-
-		filename = sys.argv[1]
-
-	else:
-		from File_Picker import file_picker_dialog
-
-		filename = file_picker_dialog(
-			title='Seleccionar una archivo',
-			root_dir='./test',
-			file_pattern='^.*[.]bminor'
-		)
-
-	if filename:
-		txt = open(filename, encoding='utf-8').read()
-		ast = parse(txt)
-		
-		print(ast)
+    import sys
+    
+    if len(sys.argv) != 2:
+        raise SystemExit("Uso: python parser.py <nombre_archivo>")
+    filename = sys.argv[1]
+    with open(filename, 'r', encoding='utf-8') as f:
+        txt = f.read()
+    
+    ast = parse(txt)
+    
+    if not errors_detected():
+        print("[bold green]Análisis sintáctico completado sin errores.[/bold green]")
+        tree_vis = ast.pretty()
+        print(tree_vis)
+    else:
+        print(f"[bold red]Se encontraron {errors_detected()} errores.[/bold red]")

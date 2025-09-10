@@ -13,7 +13,7 @@ class Visitor(metaclass=multimeta):
 
 @dataclass
 class Node:
-    lineno: int = 0
+    lineno: int = field(kw_only=True, default=0)
 
     def accept(self, v: Visitor, *args, **kwargs):
         """ Puerta de entrada para el patrón Visitante. """
@@ -149,8 +149,8 @@ class BinOper(Expression):
 
 @dataclass
 class UnaryOper(Expression):
-    op: str
     expr: Expression
+    op: str
 
 @dataclass
 class PreInc(UnaryOper): op: str = '++'

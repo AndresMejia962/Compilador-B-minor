@@ -7,7 +7,7 @@ class Lexer(sly.Lexer):
     tokens = {
         # Palabras Reservadas
         ARRAY, AUTO, BOOLEAN, CHAR, ELSE, FALSE, FLOAT, FOR, FUNCTION,
-        IF, INTEGER, PRINT, RETURN, STRING, TRUE, VOID, WHILE,
+        IF, INTEGER, PRINT, RETURN, STRING, TRUE, VOID, WHILE, DO,
 
         # Operadores
         INC, DEC, LOR, LAND, EQ, NE, LE, GE, LT, GT,
@@ -142,9 +142,9 @@ class Lexer(sly.Lexer):
         keywords = {
             'array': 'ARRAY', 'auto': 'AUTO', 'boolean': 'BOOLEAN', 'char': 'CHAR',
             'else': 'ELSE', 'false': 'FALSE', 'float': 'FLOAT', 'for': 'FOR',
-            'function': 'FUNCTION', 'if': 'IF', 'int': 'INTEGER', 'print': 'PRINT',
+            'function': 'FUNCTION', 'if': 'IF', 'integer': 'INTEGER', 'print': 'PRINT',
             'return': 'RETURN', 'string': 'STRING', 'true': 'TRUE', 'void': 'VOID',
-            'while': 'WHILE'
+            'while': 'WHILE', 'do': 'DO',
         }
         t.type = keywords.get(t.value, 'ID')
         return t

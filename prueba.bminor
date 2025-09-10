@@ -1,0 +1,16 @@
+main: function integer () = {
+    x: integer = 5;
+    
+    while(x > 0) {
+        print x;
+        --x; // Usando pre-decremento
+    }
+    
+    y: integer = 0;
+    do {
+        print y;
+        ++y; // Usando pre-incremento
+    } while(y < 3);
+    
+    return 0;
+}
