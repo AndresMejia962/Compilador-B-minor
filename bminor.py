@@ -3,8 +3,6 @@ import argparse
 import pandas as pd
 from tabulate import tabulate
 from rich import print
-
-# Importaciones del lexer y parser
 from bminor_lexer import Lexer
 from parser import parse
 from errors import errors_detected, clear_errors
@@ -66,12 +64,10 @@ def parse_file(filepath):
         print(f"Error: El archivo '{filepath}' no fue encontrado.")
         sys.exit(1)
 
-    # Es importante limpiar los errores de ejecuciones previas
     clear_errors()
     
     ast = parse(code)
     
-    # Muestra el resultado de la misma forma que lo hacía parser.py
     if not errors_detected():
         print("[bold green]Análisis sintáctico completado sin errores.[/bold green]")
         if ast:
