@@ -1,0 +1,12 @@
+//good0.bminor
+//Probar un bucle while simple con un operador de pre-decremento
+
+main: function integer () = {
+    x: integer = 5;
+    
+    while (x > 0) {
+        print "Cuenta atras: ", x;
+        --x;
+    }
+    return 0;
+}

@@ -2,9 +2,15 @@ import sys
 import argparse
 import pandas as pd
 from tabulate import tabulate
+from rich import print
+
+# Importaciones del lexer y parser
 from bminor_lexer import Lexer
+from parser import parse
+from errors import errors_detected, clear_errors
 
 def scan_file(filepath):
+    """Realiza el análisis léxico de un archivo y muestra los tokens."""
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             code = f.read()
@@ -16,13 +22,14 @@ def scan_file(filepath):
     tokens_list = []
     errors_list = []
 
+    # Captura de errores léxicos
     def lexer_error(t):
         error_message = f"Error Léxico: Carácter ilegal '{t.value[0]}' en la línea {t.lineno}"
         errors_list.append(error_message)
         lexer.index += 1
-
     lexer.error = lexer_error
 
+    # Tokenización
     for tok in lexer.tokenize(code):
         if tok.type == 'ERROR':
             errors_list.append(tok.value)
@@ -33,32 +40,59 @@ def scan_file(filepath):
         for error in errors_list:
             print(error)
     
-    if not tokens_list:
+    if not tokens_list and not errors_list:
         print("Análisis léxico completado: no se encontraron tokens.")
         return
 
-    line_starts = [0] + [i + 1 for i, char in enumerate(code) if char == '\n']
+    if tokens_list:
+        line_starts = [0] + [i + 1 for i, char in enumerate(code) if char == '\n']
         
-    table_data = []
-    for tok in tokens_list:
-        line_start_index = line_starts[tok.lineno - 1]
-        columna = tok.index - line_start_index + 1
-        table_data.append([tok.type, repr(tok.value), tok.lineno, columna])
-            
-    df = pd.DataFrame(table_data, columns=["TIPO", "VALOR", "LINEA", "COLUMNA"])
-    df.index = range(1, len(df) + 1)
-    print(tabulate(df, headers='keys', tablefmt='fancy_grid', stralign='left', showindex="TOKEN #"))
+        table_data = []
+        for tok in tokens_list:
+            line_start_index = line_starts[tok.lineno - 1]
+            columna = tok.index - line_start_index + 1
+            table_data.append([tok.type, repr(tok.value), tok.lineno, columna])
+                
+        df = pd.DataFrame(table_data, columns=["TIPO", "VALOR", "LINEA", "COLUMNA"])
+        df.index = range(1, len(df) + 1)
+        print(tabulate(df, headers='keys', tablefmt='fancy_grid', stralign='left', showindex="TOKEN #"))
+
+def parse_file(filepath):
+    """Realiza el análisis sintáctico de un archivo y muestra el AST."""
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            code = f.read()
+    except FileNotFoundError:
+        print(f"Error: El archivo '{filepath}' no fue encontrado.")
+        sys.exit(1)
+
+    # Es importante limpiar los errores de ejecuciones previas
+    clear_errors()
+    
+    ast = parse(code)
+    
+    # Muestra el resultado de la misma forma que lo hacía parser.py
+    if not errors_detected():
+        print("[bold green]Análisis sintáctico completado sin errores.[/bold green]")
+        if ast:
+            tree_vis = ast.pretty()
+            print(tree_vis)
+    else:
+        print(f"[bold red]Se encontraron {errors_detected()} errores.[/bold red]")
 
 def main():
-    parser = argparse.ArgumentParser(description="Compilador para el lenguaje B-Minor 2025.")
+    parser = argparse.ArgumentParser(description="Compilador para el lenguaje B-Minor 2025.")  
     parser.add_argument('--scan', action='store_true', help='Realiza el análisis léxico del archivo.')
+    parser.add_argument('--parse', action='store_true', help='Realiza el análisis sintáctico del archivo.')
     parser.add_argument('filepath', type=str, help='El archivo .bminor a procesar.')
     args = parser.parse_args()
 
     if args.scan:
         scan_file(args.filepath)
+    elif args.parse:
+        parse_file(args.filepath)
     else:
-        print("Acción no especificada. Debes usar la bandera --scan.")
+        print("Acción no especificada. Debes usar la bandera --scan o --parse.")
         parser.print_help()
         sys.exit(1)
 

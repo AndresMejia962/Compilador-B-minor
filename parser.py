@@ -259,21 +259,3 @@ def parse(txt):
     l = Lexer()
     p = Parser()
     return p.parse(l.tokenize(txt))
-
-if __name__ == '__main__':
-    import sys
-    
-    if len(sys.argv) != 2:
-        raise SystemExit("Uso: python parser.py <nombre_archivo>")
-    filename = sys.argv[1]
-    with open(filename, 'r', encoding='utf-8') as f:
-        txt = f.read()
-    
-    ast = parse(txt)
-    
-    if not errors_detected():
-        print("[bold green]Análisis sintáctico completado sin errores.[/bold green]")
-        tree_vis = ast.pretty()
-        print(tree_vis)
-    else:
-        print(f"[bold red]Se encontraron {errors_detected()} errores.[/bold red]")

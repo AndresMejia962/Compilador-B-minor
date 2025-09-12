@@ -1,0 +1,12 @@
+// bad0.bminor
+// Un do-while debe terminar con un punto y coma.
+
+main: function integer () = {
+    x: integer = 0;
+    
+    do {
+        ++x;
+    } while (x < 5)  // <-- ERROR: Falta el ;
+    
+    return 0;
+}

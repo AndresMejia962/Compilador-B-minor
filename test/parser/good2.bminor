@@ -1,0 +1,14 @@
+// good2.bminor
+// prueba como interactua un for dentro de un while
+
+main: function void () = {
+    i: integer = 0;
+    while (i < 3) {
+        j: integer;
+        for (j=0; j < 2; ++j) {
+            print "i=", i, ", j=", j;
+        }
+        
+        ++i;
+    }
+}

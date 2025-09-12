@@ -1,0 +1,21 @@
+// good4.bminor
+// combinacion de varias estructuras.
+
+main: function void () = {
+    contador: integer = 10;
+    
+    while (contador > 0) {
+        if (contador % 2 == 0) {
+            print contador, " es par.";
+            
+            // Bucle anidado para demostrar
+            iter: integer = 0;
+            do {
+                print ".";
+                ++iter;
+            } while (iter < 2);
+            
+        }
+        --contador;
+    }
+}
