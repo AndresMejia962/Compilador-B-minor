@@ -7,9 +7,6 @@ import os
 from model import *
 
 class ASTPrinter(Visitor):
-    """
-    Un visitante que construye una representación gráfica del AST usando Graphviz.
-    """
     node_defaults = {
         'shape': 'box',
         'color': 'deepskyblue',
@@ -44,7 +41,7 @@ class ASTPrinter(Visitor):
         
         try:
             dot_visitor.dot.render(filename, view=True, cleanup=True, format='pdf')
-            print(f"[bold green]✅ AST renderizado y guardado como '{filename}.pdf'[/bold green]")
+            print(f"[bold green] AST renderizado y guardado como '{filename}.pdf'[/bold green]")
         except Exception as e:
             print(f"[bold red] Error al renderizar con Graphviz:[/bold red]")
             print(dot_visitor.dot.source)
