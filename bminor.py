@@ -6,6 +6,7 @@ from rich import print
 from bminor_lexer import Lexer
 from parser import parse
 from errors import errors_detected, clear_errors
+from checker import Check
 
 def scan_file(filepath):
     """Realiza el análisis léxico de un archivo y muestra los tokens."""
@@ -71,15 +72,47 @@ def parse_file(filepath):
     if not errors_detected():
         print("[bold green]Análisis sintáctico completado sin errores.[/bold green]")
         if ast:
+            print("[bold blue]Mostrando Árbol de Sintaxis Abstracta (AST):[/bold blue]")
             tree_vis = ast.pretty()
             print(tree_vis)
     else:
-        print(f"[bold red]Se encontraron {errors_detected()} errores.[/bold red]")
+        print(f"[bold red]Se encontraron {errors_detected()} errores de sintaxis.[/bold red]")
+
+def check_file(filepath):
+    """Realiza el análisis sintáctico y semántico de un archivo."""
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            code = f.read()
+    except FileNotFoundError:
+        print(f"Error: El archivo '{filepath}' no fue encontrado.")
+        sys.exit(1)
+
+    clear_errors()
+    
+    ast = parse(code)
+    
+    # Detenerse si hay errores de sintaxis antes de continuar
+    if errors_detected():
+        print(f"[bold red]Se encontraron {errors_detected()} errores de sintaxis. No se puede continuar con el análisis semántico.[/bold red]")
+        return
+        
+    print("[bold blue]Análisis sintáctico completado. Iniciando análisis semántico...[/bold blue]")
+    
+    # Iniciar el análisis semántico
+    global_env = Check.checker(ast)
+    
+    if not errors_detected():
+        print("[bold green]Análisis semántico completado sin errores.[/bold green]")
+        print("[bold blue]Mostrando Tablas de Símbolos:[/bold blue]")
+        global_env.print()
+    else:
+        print(f"[bold red]Se encontraron {errors_detected()} errores en total.[/bold red]")
 
 def main():
     parser = argparse.ArgumentParser(description="Compilador para el lenguaje B-Minor 2025.")  
     parser.add_argument('--scan', action='store_true', help='Realiza el análisis léxico del archivo.')
     parser.add_argument('--parse', action='store_true', help='Realiza el análisis sintáctico del archivo.')
+    parser.add_argument('--check', action='store_true', help='Realiza el análisis sintáctico y semántico del archivo.')
     parser.add_argument('filepath', type=str, help='El archivo .bminor a procesar.')
     args = parser.parse_args()
 
@@ -87,10 +120,12 @@ def main():
         scan_file(args.filepath)
     elif args.parse:
         parse_file(args.filepath)
+    elif args.check:
+        check_file(args.filepath)
     else:
-        print("Acción no especificada. Debes usar la bandera --scan o --parse.")
+        print("Acción no especificada. Debes usar la bandera --scan, --parse o --check.")
         parser.print_help()
         sys.exit(1)
 
 if __name__ == '__main__':
-    main()
+    main() 
