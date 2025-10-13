@@ -229,15 +229,23 @@ class Parser(sly.Parser):
 
     # Tipos
     @_("INTEGER", "FLOAT", "BOOLEAN", "CHAR", "STRING", "VOID")
-    def type_simple(self, p): return _L(SimpleType(p[0]), p.lineno)
-    @_("ARRAY '[' ']' type_simple")
-    def type_array(self, p): return _L(ArrayType(p.type_simple), p.lineno)
-    @_("ARRAY '[' expr ']' type_simple")
-    def type_array_sized(self, p): return _L(ArrayType(p.type_simple, p.expr), p.lineno)
+    def type_simple(self, p): 
+        return _L(SimpleType(p[0]), p.lineno)
     
-    # --- CAMBIO 3: Se corrigió la creación del objeto FuncDecl ---
-    # Se cambió el argumento 'return_type' por 'type' para que coincida con la
-    # definición de la clase en model.py.
+    @_("ARRAY '[' ']' type_simple")
+    def type_array(self, p): 
+        return _L(ArrayType(p.type_simple), p.lineno)
+    
+    # REGLA ORIGINAL: Arrays con tamaño y tipo simple
+    @_("ARRAY '[' expr ']' type_simple")
+    def type_array_sized(self, p): 
+        return _L(ArrayType(p.type_simple, p.expr), p.lineno)
+    
+    # REGLA NUEVA: Arrays anidados con tamaño
+    @_("ARRAY '[' expr ']' type_array_sized")
+    def type_array_sized(self, p):
+        return _L(ArrayType(p.type_array_sized, p.expr), p.lineno)
+    
     @_("FUNCTION type_simple '(' opt_param_list ')'")
     def type_func(self, p):
         return FuncDecl(name=None, type=p.type_simple, params=p.opt_param_list)
