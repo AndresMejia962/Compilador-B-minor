@@ -226,6 +226,8 @@ class Parser(sly.Parser):
     def param(self, p): return _L(Param(p.ID, p.type_simple), p.lineno)
     @_("ID ':' type_array")
     def param(self, p): return _L(Param(p.ID, p.type_array), p.lineno)
+    @_("ID ':' type_array_sized")
+    def param(self, p): return _L(Param(p.ID, p.type_array_sized), p.lineno)
 
     # Tipos
     @_("INTEGER", "FLOAT", "BOOLEAN", "CHAR", "STRING", "VOID")
@@ -236,12 +238,11 @@ class Parser(sly.Parser):
     def type_array(self, p): 
         return _L(ArrayType(p.type_simple), p.lineno)
     
-    # REGLA ORIGINAL: Arrays con tamaño y tipo simple
     @_("ARRAY '[' expr ']' type_simple")
     def type_array_sized(self, p): 
         return _L(ArrayType(p.type_simple, p.expr), p.lineno)
     
-    # REGLA NUEVA: Arrays anidados con tamaño
+    # Regla nueva: Arrays anidados con tamaño
     @_("ARRAY '[' expr ']' type_array_sized")
     def type_array_sized(self, p):
         return _L(ArrayType(p.type_array_sized, p.expr), p.lineno)

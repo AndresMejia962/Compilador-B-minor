@@ -280,7 +280,15 @@ class Check(Visitor):
             error(f"El índice del array debe ser 'integer', no '{n.index.type}'", n.lineno)
         
         # El tipo del resultado es el tipo de elemento del array
-        n.type = n.location.type.element_type.name
+        # Puede ser SimpleType o ArrayType (para arrays anidados)
+        element_type = n.location.type.element_type
+        if isinstance(element_type, SimpleType):
+            n.type = element_type.name
+        elif isinstance(element_type, ArrayType):
+            n.type = element_type  # Array anidado
+        else:
+            n.type = element_type
+        
         n.mutable = True
 
     def visit(self, n: FuncCall, env: Symtab):
