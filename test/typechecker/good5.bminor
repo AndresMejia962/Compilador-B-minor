@@ -1,0 +1,12 @@
+// Prueba de arrays multidimensionales
+matriz: array [3] array [3] integer = {
+    {1, 2, 3},
+    {4, 5, 6},
+    {7, 8, 9}
+};
+
+main: function integer () = {
+    elemento: integer = matriz[1][2];
+    print "Elemento: ", elemento;
+    return 0;
+};

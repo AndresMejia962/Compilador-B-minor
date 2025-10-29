@@ -1,0 +1,5 @@
+// Error: Array con tipos incorrectos en inicializacion
+numeros: array [3] integer = {1.5, 2.7, 3.9};
+letras: array [2] char = {"a", "b"};
+banderas: array [2] boolean = {1, 0};
+textos: array [2] string = {true, false};

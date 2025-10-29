@@ -1,0 +1,5 @@
+// bad1.bminor
+// Verificar que se detectan carateres que no hacen parte del lenguaje
+x: integer = 5;
+y: integer = x # 2; 
+z: integer = y @ 3;

@@ -1,0 +1,3 @@
+string s = "Hola \"mundo\" con \\n salto";
+char c = '\t';
+//Muchos lexers se rompen con comillas escapadas (\") o dobles barras (\\).También puede romperse si no diferencia bien entre STRING_LITERAL y CHAR_LITERAL.

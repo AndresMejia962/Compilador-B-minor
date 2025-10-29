@@ -1,0 +1,9 @@
+// Prueba de funcion void
+imprimir_mensaje: function void (texto: string) = {
+    print "Mensaje: ", texto;
+};
+
+main: function integer () = {
+    imprimir_mensaje("Hola desde funcion void");
+    return 0;
+};

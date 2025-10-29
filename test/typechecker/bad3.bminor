@@ -1,0 +1,12 @@
+// Error: Condicion no booleana en if
+main: function integer () = {
+    edad: integer = 25;
+    
+    if (edad) {
+        print "Edad es verdadera";
+    } else {
+        print "Edad es falsa";
+    }
+    
+    return 0;
+};

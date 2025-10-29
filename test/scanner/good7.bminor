@@ -1,0 +1,8 @@
+int a = 007;       // debería ser 7 (cuidado con ceros a la izquierda)
+float b = .5;      // válido: 0.5
+float c = 5.;      // válido: 5.0
+float d = 3.14e+10;
+
+//INTEGER_LITERAL → 7 (sin error por ceros iniciales)
+
+//FLOAT_LITERAL → 0.5, 5.0, 3.14e+10

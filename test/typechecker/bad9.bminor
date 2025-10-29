@@ -1,0 +1,10 @@
+// Error: Funcion void que retorna valor
+imprimir: function void (mensaje: string) = {
+    print mensaje;
+    return 42;
+};
+
+main: function integer () = {
+    imprimir("Hola");
+    return 0;
+};

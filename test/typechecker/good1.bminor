@@ -1,0 +1,6 @@
+// Prueba de arrays con diferentes tipos
+numeros: array [5] integer = {1, 2, 3, 4, 5};
+valores: array [3] float = {1.5, 2.7, 3.9};
+banderas: array [2] boolean = {true, false};
+caracteres: array [4] char = {'a', 'b', 'c', 'd'};
+textos: array [2] string = {"uno", "dos"};

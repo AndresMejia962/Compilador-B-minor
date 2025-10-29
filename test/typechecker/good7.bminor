@@ -1,0 +1,19 @@
+// Prueba de funcion con array como parametro
+procesar_array: function integer (arr: array [] integer) = {
+    suma: integer = 0;
+    i: integer = 0;
+    
+    while (i < 3) {
+        suma = suma + arr[i];
+        ++i;
+    }
+    
+    return suma;
+};
+
+main: function integer () = {
+    datos: array [3] integer = {10, 20, 30};
+    total: integer = procesar_array(datos);
+    print "Total: ", total;
+    return 0;
+};

@@ -1,0 +1,6 @@
+// Prueba basica de declaraciones de variables
+contador: integer = 42;
+precio: float = 99.99;
+activo: boolean = true;
+letra: char = 'A';
+mensaje: string = "Hola mundo";

@@ -1,0 +1,11 @@
+// Error: Condicion no booleana en while
+main: function integer () = {
+    i: integer = 0;
+    
+    while (i) {
+        print "Iteracion: ", i;
+        ++i;
+    }
+    
+    return 0;
+};

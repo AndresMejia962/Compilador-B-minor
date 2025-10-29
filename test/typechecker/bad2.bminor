@@ -1,0 +1,9 @@
+// Error: Funcion con tipo de retorno incorrecto
+sumar: function integer (a: integer, b: integer) = {
+    return "texto";
+};
+
+main: function integer () = {
+    resultado: integer = sumar(5, 3);
+    return resultado;
+};

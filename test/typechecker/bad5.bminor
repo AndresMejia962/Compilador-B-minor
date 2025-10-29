@@ -1,0 +1,10 @@
+// Error: Operacion entre tipos incompatibles
+main: function integer () = {
+    numero: integer = 10;
+    texto: string = "hola";
+    
+    resultado: integer = numero + texto;
+    print "Resultado: ", resultado;
+    
+    return 0;
+};

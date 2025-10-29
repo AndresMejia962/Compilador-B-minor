@@ -1,0 +1,2 @@
+float y = 12.3.4;
+//Un número decimal no puede tener dos puntos decimales. El analizador debería cortar el token o lanzar error.

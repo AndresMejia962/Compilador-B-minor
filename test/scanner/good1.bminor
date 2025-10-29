@@ -1,0 +1,7 @@
+// good1.bminor
+// Verificar la definicion de funciones y el reconocimiento de function, void y return
+
+mi_funcion: function void (a: integer, b: string) = {
+    print a, b;
+    return;
+}

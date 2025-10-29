@@ -1,0 +1,6 @@
+// Error: Variable no definida
+main: function integer () = {
+    resultado: integer = variable_inexistente + 5;
+    print "Resultado: ", resultado;
+    return 0;
+};

@@ -1,0 +1,10 @@
+// Error: Argumentos incorrectos en llamada de funcion
+sumar: function integer (a: integer, b: integer) = {
+    return a + b;
+};
+
+main: function integer () = {
+    resultado: integer = sumar("texto", true);
+    print "Resultado: ", resultado;
+    return 0;
+};

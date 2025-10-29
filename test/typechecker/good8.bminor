@@ -1,0 +1,11 @@
+// Prueba de do-while loop
+main: function integer () = {
+    contador: integer = 0;
+    
+    do {
+        print "Contador: ", contador;
+        ++contador;
+    } while (contador < 3);
+    
+    return 0;
+};

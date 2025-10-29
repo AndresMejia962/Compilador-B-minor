@@ -1,0 +1,12 @@
+// Prueba de estructuras de control
+main: function integer () = {
+    edad: integer = 25;
+    
+    if (edad >= 18) {
+        print "Es mayor de edad";
+    } else {
+        print "Es menor de edad";
+    }
+    
+    return 0;
+};

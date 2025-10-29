@@ -1,0 +1,10 @@
+// bad4.bminor
+// Los operadores prefijos necesitan un operando.
+
+main: function integer () = {
+    x: integer = 5;
+    
+    x = ++ ; // <-- ERROR: Falta la variable después de ++
+    
+    return x;
+}

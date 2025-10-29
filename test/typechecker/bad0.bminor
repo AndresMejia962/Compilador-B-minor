@@ -1,0 +1,6 @@
+// Error: Asignacion de tipos incorrectos
+numero: integer = "texto";
+decimal: float = true;
+bandera: boolean = 42;
+caracter: char = 3.14;
+texto: string = false;

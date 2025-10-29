@@ -1,0 +1,6 @@
+// Error: Funcion no definida
+main: function integer () = {
+    resultado: integer = funcion_inexistente(10, 20);
+    print "Resultado: ", resultado;
+    return 0;
+};

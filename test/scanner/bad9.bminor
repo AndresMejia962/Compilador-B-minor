@@ -1,0 +1,3 @@
+flot w = 9.1;
+//El analizador debe reconocer flot como un ID y no como la palabra reservada float.
+// Esto sirve para validar que no se aceptan "casi-palabras reservadas".
