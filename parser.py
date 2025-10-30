@@ -19,6 +19,7 @@ class Parser(sly.Parser):
 
     tokens = Lexer.tokens
 
+    # parser.py
     @_("decl_list")
     def prog(self, p):
         return Program(p.decl_list)
