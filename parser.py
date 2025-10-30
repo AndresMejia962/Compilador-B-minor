@@ -38,6 +38,11 @@ class AnalizadorSintactico(sly.Parser):
     def declaracion(self, p):
         return asignar_linea(ArrayDecl(p.ID, p.tipo_array_con_tamano), p.lineno)
 
+    # Permitir declaración de array sin tamaño
+    @_("ID ':' tipo_array ';'")
+    def declaracion(self, p):
+        return asignar_linea(ArrayDecl(p.ID, p.tipo_array), p.lineno)
+
     @_("ID ':' tipo_funcion ';'")
     def declaracion(self, p):
         declaracion_funcion = p.tipo_funcion
@@ -55,6 +60,32 @@ class AnalizadorSintactico(sly.Parser):
     @_("ID ':' tipo_array_con_tamano '=' '{' lista_expresiones_opcional '}' ';'")
     def declaracion_inicializada(self, p):
         return asignar_linea(ArrayDecl(p.ID, p.tipo_array_con_tamano, value=p.lista_expresiones_opcional), p.lineno)
+
+    # Permitir inicialización de array sin tamaño
+    @_("ID ':' tipo_array '=' '{' lista_expresiones_opcional '}' ';'")
+    def declaracion_inicializada(self, p):
+        return asignar_linea(ArrayDecl(p.ID, p.tipo_array, value=p.lista_expresiones_opcional), p.lineno)
+
+    # Variantes sin punto y coma (para cabecera de FOR)
+    @_("ID ':' tipo_simple")
+    def declaracion_sin_pyc(self, p):
+        return asignar_linea(VarDecl(p.ID, p.tipo_simple), p.lineno)
+    @_("ID ':' tipo_array_con_tamano")
+    def declaracion_sin_pyc(self, p):
+        return asignar_linea(ArrayDecl(p.ID, p.tipo_array_con_tamano), p.lineno)
+    @_("ID ':' tipo_array")
+    def declaracion_sin_pyc(self, p):
+        return asignar_linea(ArrayDecl(p.ID, p.tipo_array), p.lineno)
+
+    @_("ID ':' tipo_simple '=' expr")
+    def declaracion_inicializada_sin_pyc(self, p):
+        return asignar_linea(VarDecl(p.ID, p.tipo_simple, p.expr), p.lineno)
+    @_("ID ':' tipo_array_con_tamano '=' '{' lista_expresiones_opcional '}'")
+    def declaracion_inicializada_sin_pyc(self, p):
+        return asignar_linea(ArrayDecl(p.ID, p.tipo_array_con_tamano, value=p.lista_expresiones_opcional), p.lineno)
+    @_("ID ':' tipo_array '=' '{' lista_expresiones_opcional '}'")
+    def declaracion_inicializada_sin_pyc(self, p):
+        return asignar_linea(ArrayDecl(p.ID, p.tipo_array, value=p.lista_expresiones_opcional), p.lineno)
 
     @_("ID ':' tipo_funcion '=' '{' lista_sentencias_opcional '}'")
     def declaracion_inicializada(self, p):
@@ -105,12 +136,12 @@ class AnalizadorSintactico(sly.Parser):
     def sentencia_if_abierta(self, p):
         return asignar_linea(IfStmt(p.expr, p.sentencia_cerrada, p.sentencia_abierta), p.lineno)
 
-    @_("FOR '(' expr_opcional ';' expr_opcional ';' expr_opcional ')' sentencia_abierta")
+    @_("FOR '(' for_init ';' expr_opcional ';' expr_opcional ')' sentencia_abierta")
     def sentencia_for_abierta(self, p):
-        return asignar_linea(ForStmt(p.expr_opcional0, p.expr_opcional1, p.expr_opcional2, p.sentencia_abierta), p.lineno)
-    @_("FOR '(' expr_opcional ';' expr_opcional ';' expr_opcional ')' sentencia_cerrada")
+        return asignar_linea(ForStmt(p.for_init, p.expr_opcional0, p.expr_opcional1, p.sentencia_abierta), p.lineno)
+    @_("FOR '(' for_init ';' expr_opcional ';' expr_opcional ')' sentencia_cerrada")
     def sentencia_for_cerrada(self, p):
-        return asignar_linea(ForStmt(p.expr_opcional0, p.expr_opcional1, p.expr_opcional2, p.sentencia_cerrada), p.lineno)
+        return asignar_linea(ForStmt(p.for_init, p.expr_opcional0, p.expr_opcional1, p.sentencia_cerrada), p.lineno)
 
     @_("sentencia_print", "sentencia_return", "sentencia_bloque", "declaracion", "expr ';'")
     def sentencia_simple(self, p):
@@ -255,10 +286,21 @@ class AnalizadorSintactico(sly.Parser):
     def expr_opcional(self, p): return None
     @_("expr")
     def expr_opcional(self, p): return p.expr
+
+    # Sección init específica de FOR (permite declaración y expr)
+    @_("empty")
+    def for_init(self, p): return None
+    @_("expr")
+    def for_init(self, p): return p.expr
+    @_("declaracion_inicializada_sin_pyc")
+    def for_init(self, p): return p.declaracion_inicializada_sin_pyc
+    @_("declaracion_sin_pyc")
+    def for_init(self, p): return p.declaracion_sin_pyc
     @_("")
     def empty(self, p): pass
 
-    def manejar_error(self, token):
+    # Manejador de errores requerido por SLY
+    def error(self, token):
         if token:
             error(f"Error de sintaxis en '{token.value}'", token.lineno)
         else:
@@ -268,3 +310,10 @@ def analizar_sintaxis(texto):
     lexer = Lexer()
     parser = AnalizadorSintactico()
     return parser.parse(lexer.tokenize(texto))
+
+# Compatibilidad con pruebas existentes
+# Exporta nombres esperados: Parser y parse
+Parser = AnalizadorSintactico
+
+def parse(texto: str):
+    return analizar_sintaxis(texto)

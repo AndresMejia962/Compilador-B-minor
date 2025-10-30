@@ -36,6 +36,9 @@ class AnalizadorSemantico(Visitor):
     def visit(self, declaracion_variable: VarDecl, entorno: TablaSimbolos):
         # Asignar el tipo PRIMERO
         declaracion_variable.sym_type = declaracion_variable.type.name
+        # No se permiten variables de tipo void
+        if declaracion_variable.sym_type == 'void':
+            error("No se permite declarar variables de tipo 'void'", declaracion_variable.lineno)
         
         if declaracion_variable.value:
             declaracion_variable.value.accept(self, entorno)
@@ -50,6 +53,10 @@ class AnalizadorSemantico(Visitor):
     def visit(self, declaracion_array: ArrayDecl, entorno: TablaSimbolos):
         # El tipo del array ya está en declaracion_array.type (que es un ArrayType)
         declaracion_array.sym_type = declaracion_array.type
+
+        # Los arrays no pueden tener elementos de tipo void (en ninguna profundidad)
+        if self._contiene_void(declaracion_array.type):
+            error("Los arrays no pueden tener elementos de tipo 'void'", declaracion_array.lineno)
 
         # Validar recursivamente todos los tamaños de arrays anidados
         self._validar_tamanos_array(declaracion_array.type, entorno, declaracion_array.lineno)
@@ -94,6 +101,14 @@ class AnalizadorSemantico(Visitor):
         elif isinstance(tipo, ArrayType):
             return tipo
         return str(tipo)
+
+    def _contiene_void(self, tipo):
+        """Devuelve True si el tipo (simple o anidado) contiene 'void' como base."""
+        if isinstance(tipo, SimpleType):
+            return tipo.name == 'void'
+        if isinstance(tipo, ArrayType):
+            return self._contiene_void(tipo.element_type)
+        return False
 
     def visit(self, declaracion_funcion: FuncDecl, entorno: TablaSimbolos):
         # Asignar el tipo de retorno de la función
@@ -167,8 +182,8 @@ class AnalizadorSemantico(Visitor):
             sentencia_if.false_body.accept(self, entorno)
 
     def visit(self, sentencia_for: ForStmt, entorno: TablaSimbolos):
-        entorno_bucle = TablaSimbolos('for_loop', parent=entorno)
-        entorno_bucle.add('$loop', True)
+        entorno_bucle = TablaSimbolos('for_loop', padre=entorno)
+        entorno_bucle.agregar('$loop', True)
         
         if sentencia_for.init: 
             sentencia_for.init.accept(self, entorno_bucle)
@@ -188,13 +203,13 @@ class AnalizadorSemantico(Visitor):
         if sentencia_while.condition.type != 'boolean':
             error(f"La condición en WHILE debe ser 'boolean', no '{sentencia_while.condition.type}'", sentencia_while.lineno)
         
-        entorno_bucle = TablaSimbolos('while_loop', parent=entorno)
-        entorno_bucle.add('$loop', True)
+        entorno_bucle = TablaSimbolos('while_loop', padre=entorno)
+        entorno_bucle.agregar('$loop', True)
         sentencia_while.body.accept(self, entorno_bucle)
 
     def visit(self, sentencia_dowhile: DoWhileStmt, entorno: TablaSimbolos):
-        entorno_bucle = TablaSimbolos('dowhile_loop', parent=entorno)
-        entorno_bucle.add('$loop', True)
+        entorno_bucle = TablaSimbolos('dowhile_loop', padre=entorno)
+        entorno_bucle.agregar('$loop', True)
         sentencia_dowhile.body.accept(self, entorno_bucle)
         
         sentencia_dowhile.condition.accept(self, entorno_bucle)

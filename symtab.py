@@ -59,9 +59,7 @@ class TablaSimbolos:
 		del self.entradas[nombre]
 
 	def __contains__(self, nombre):
-		if nombre in self.entradas:
-			return self.entradas[nombre]
-		return False
+		return nombre in self.entradas
 
 	def agregar(self, nombre, valor):
 		'''
