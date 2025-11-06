@@ -20,9 +20,9 @@ class Parser(sly.Parser):
     tokens = Lexer.tokens
 
     # parser.py
-    @_("decl_list")
+    @_("opt_stmt_list")
     def prog(self, p):
-        return Program(p.decl_list)
+        return Program(p.opt_stmt_list)
 
     @_("decl decl_list")
     def decl_list(self, p):
