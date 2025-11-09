@@ -1,7 +1,0 @@
-// Archivo de prueba para el subconjunto JIT
-
-// Probar declaración con inicializador
-x: integer = 100;
-y: integer = 21;
-
-z: integer = x + y;

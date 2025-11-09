@@ -1,28 +1,11 @@
 # codegen.py
 # ----------------------------------------------------------------------
-# Generador de Código LLVM para B-Minor
-#
-# Este visitante recorre el AST (que ya ha sido anotado por checker.py) 
-# y genera el Código Intermedio (IR) de LLVM usando llvmlite.
-#
-# Soporta:
-# - Tipos: integer (i64), float (double), boolean (i1), char (i8), string (i8*)
-# - Declaraciones: variables simples y arrays
-# - Operaciones binarias: +, -, *, /, %, ^, <, <=, >, >=, ==, !=, &&, ||
-# - Operaciones unarias: -, !, ++, --
-# - Print: para todos los tipos
-# - Asignaciones y acceso a arrays
-# - Aun no soporta funciones ni control de flujo
-#
-# Al ejecutar este codigo, se generaun archivo 'output.ll' con el IR de LLVM
-# y un archivo 'runtime.c' con las funciones de runtime necesarias para print, el
-# contenido de output.ll es el codigo intermedio de LLVM que puede ser ejecutado con clang.
-# ----------------------------------------------------------------------
+# Generador de Código LLVM para B-Minor 
+# Se ejecuta usando el comando --codegen en bminor.py
 
 from llvmlite import ir
 from model import *
 from model import Visitor
-import math
 
 class LLVMCodeGenerator(Visitor):
     '''
@@ -51,21 +34,14 @@ class LLVMCodeGenerator(Visitor):
             'void': self.void_type,
         }
 
-        # --- Configuración de la función 'main' ---
-        # B-minor se compilará a una única función 'main'
-        main_func_type = ir.FunctionType(self.int_type, [])  # main retorna integer
-        self.function = ir.Function(self.module, main_func_type, name='main')
-        
-        # Bloque de entrada (entry) para 'main'
-        entry_block = self.function.append_basic_block(name='entry')
-        
-        # Constructor de IR (IRBuilder). Apunta al final del bloque 'entry'.
-        self.builder = ir.IRBuilder(entry_block)
-
         # --- Tabla de Símbolos de LLVM ---
-        # Mapea nombres de variables de bminor (str) a sus 
-        # punteros 'alloca' (ir.AllocaInstr) en el stack.
+        # Mapea nombres de variables/funciones a sus punteros/funciones
         self.vars = {}
+        self.functions = {}  # Diccionario de funciones LLVM
+
+        # --- Contexto de función actual ---
+        self.current_function = None
+        self.builder = None
 
         # --- Contador para strings literales ---
         self.string_counter = 0
@@ -115,27 +91,79 @@ class LLVMCodeGenerator(Visitor):
             return element_type.as_pointer()
         return None
 
+    def _push_scope(self):
+        """Guarda el scope actual de variables (para bloques anidados)"""
+        # Crear una copia del diccionario actual
+        return dict(self.vars)
+
+    def _pop_scope(self, saved_vars):
+        """Restaura el scope anterior"""
+        self.vars = saved_vars
+
     # =====================================================================
     # Nodos de Programa y Bloques
     # =====================================================================
 
     def visit(self, n: Program):
         '''
-        Punto de entrada. Visita todas las sentencias del programa.
+        Punto de entrada. Primero declara todas las funciones,
+        luego las define.
         '''
+        # FASE 1: Declarar todas las funciones (forward declarations)
         for stmt in n.body:
-            self.visit(stmt)
+            if isinstance(stmt, FuncDecl):
+                self._declare_function(stmt)
         
-        # Terminar la función 'main' con un 'ret 0'
-        if not self.builder.block.is_terminated:
-            self.builder.ret(ir.Constant(self.int_type, 0))
+        # FASE 2: Definir funciones con cuerpo
+        for stmt in n.body:
+            if isinstance(stmt, FuncDecl):
+                if stmt.body:  # Solo si tiene cuerpo
+                    self.visit(stmt)
+            else:
+                pass
+
+    def _declare_function(self, n: FuncDecl):
+        """Declara una función (prototipo) sin definir su cuerpo"""
+        func_name = n.name
+        
+        # Obtener tipo de retorno
+        return_type = self._get_llvm_type(n.sym_type)
+        
+        # Obtener tipos de parámetros
+        param_types = []
+        for param in n.params:
+            if isinstance(param.type, SimpleType):
+                param_types.append(self._get_llvm_type(param.type.name))
+            elif isinstance(param.type, ArrayType):
+                # Arrays como parámetros son punteros
+                elem_type = self._get_llvm_type(param.type.element_type.name)
+                param_types.append(elem_type.as_pointer())
+        
+        # Crear tipo de función
+        func_type = ir.FunctionType(return_type, param_types)
+        
+        # Crear función en el módulo
+        func = ir.Function(self.module, func_type, name=func_name)
+        
+        # Nombrar los argumentos
+        for i, param in enumerate(n.params):
+            func.args[i].name = param.name
+        
+        # Guardar en tabla de funciones
+        self.functions[func_name] = func
 
     def visit(self, n: BlockStmt):
         '''
         Visita una secuencia de sentencias dentro de un bloque.
         '''
+        # Guardar scope actual
+        saved_vars = self._push_scope()
+        
         for stmt in n.statements:
             self.visit(stmt)
+        
+        # Restaurar scope
+        self._pop_scope(saved_vars)
 
     # =====================================================================
     # Nodos de Declaraciones
@@ -144,7 +172,6 @@ class LLVMCodeGenerator(Visitor):
     def visit(self, n: VarDecl):
         '''
         Genera código para una declaración de variable.
-        Ej: x: integer = 5;
         '''
         var_name = n.name
         
@@ -154,6 +181,8 @@ class LLVMCodeGenerator(Visitor):
 
         # --- Patrón 'alloca' ---
         # 1. Reservar espacio en el stack (alloca)
+        #    'goto_entry_block' se encarga automáticamente de 
+        #    posicionar el 'alloca' en el bloque de entrada.   
         with self.builder.goto_entry_block():
             var_ptr = self.builder.alloca(var_type_llvm, name=var_name)
         
@@ -214,6 +243,70 @@ class LLVMCodeGenerator(Visitor):
                 elem_ptr = self.builder.gep(array_ptr, [idx], inbounds=True)
                 self.builder.store(val, elem_ptr)
 
+    def visit(self, n: FuncDecl):
+        '''
+        Define una función (genera su cuerpo).
+        '''
+        func_name = n.name
+        func = self.functions[func_name]
+        
+        # Guardar contexto anterior
+        old_function = self.current_function
+        old_builder = self.builder
+        old_vars = self.vars
+        
+        # Nuevo contexto
+        self.current_function = func
+        self.vars = {}
+        
+        # Crear bloque de entrada
+        entry_block = func.append_basic_block('entry')
+        self.builder = ir.IRBuilder(entry_block)
+        
+        # Crear allocas para los parámetros y copiar valores
+        for i, param in enumerate(n.params):
+            param_name = param.name
+            
+            # Determinar tipo del parámetro
+            if isinstance(param.type, SimpleType):
+                param_type = self._get_llvm_type(param.type.name)
+            elif isinstance(param.type, ArrayType):
+                # Arrays como parámetros son punteros
+                elem_type = self._get_llvm_type(param.type.element_type.name)
+                param_type = elem_type.as_pointer()
+            
+            # Crear alloca
+            param_ptr = self.builder.alloca(param_type, name=param_name)
+            self.vars[param_name] = param_ptr
+            
+            # Copiar argumento al alloca
+            self.builder.store(func.args[i], param_ptr)
+        
+        # Generar cuerpo de la función
+        if n.body:
+            self.visit(n.body)
+        
+        # Asegurar que la función termina con return
+        if not self.builder.block.is_terminated:
+            if n.sym_type == 'void':
+                self.builder.ret_void()
+            else:
+                # Retornar valor por defecto
+                return_type = self._get_llvm_type(n.sym_type)
+                if n.sym_type == 'integer':
+                    self.builder.ret(ir.Constant(return_type, 0))
+                elif n.sym_type == 'float':
+                    self.builder.ret(ir.Constant(return_type, 0.0))
+                elif n.sym_type == 'boolean':
+                    self.builder.ret(ir.Constant(return_type, 0))
+                elif n.sym_type == 'char':
+                    self.builder.ret(ir.Constant(return_type, 0))
+        
+        # Restaurar contexto
+        self.current_function = old_function
+        self.builder = old_builder
+        self.vars = old_vars
+
     # =====================================================================
     # Nodos de Sentencias
     # =====================================================================
@@ -273,6 +366,191 @@ class LLVMCodeGenerator(Visitor):
             elif node_type == 'string':
                 self.builder.call(self._print_string, [value_llvm])
 
+    def visit(self, n: ReturnStmt):
+        '''
+        Genera código para return.
+        '''
+        if n.value:
+            # Return con valor
+            return_val = self.visit(n.value)
+            self.builder.ret(return_val)
+        else:
+            # Return void
+            self.builder.ret_void()
+
+    def visit(self, n: IfStmt):
+        '''
+        Genera código para if/else.
+        
+        Estructura:
+            br cond, then_block, else_block
+        then_block:
+            ...
+            br merge_block
+        else_block:
+            ...
+            br merge_block
+        merge_block:
+            ...
+        '''
+        # Evaluar condición
+        cond_val = self.visit(n.condition)
+        
+        # Crear bloques
+        then_block = self.current_function.append_basic_block('if.then')
+        merge_block = self.current_function.append_basic_block('if.end')
+        
+        if n.false_body:
+            else_block = self.current_function.append_basic_block('if.else')
+            self.builder.cbranch(cond_val, then_block, else_block)
+        else:
+            self.builder.cbranch(cond_val, then_block, merge_block)
+        
+        # Generar bloque then
+        self.builder.position_at_end(then_block)
+        self.visit(n.true_body)
+        if not self.builder.block.is_terminated:
+            self.builder.branch(merge_block)
+        
+        # Generar bloque else (si existe)
+        if n.false_body:
+            self.builder.position_at_end(else_block)
+            self.visit(n.false_body)
+            if not self.builder.block.is_terminated:
+                self.builder.branch(merge_block)
+        
+        # Continuar en merge_block
+        self.builder.position_at_end(merge_block)
+
+    def visit(self, n: WhileStmt):
+        '''
+        Genera código para while.
+        
+        Estructura:
+            br cond_block
+        cond_block:
+            cond = ...
+            br cond, body_block, end_block
+        body_block:
+            ...
+            br cond_block
+        end_block:
+            ...
+        '''
+        cond_block = self.current_function.append_basic_block('while.cond')
+        body_block = self.current_function.append_basic_block('while.body')
+        end_block = self.current_function.append_basic_block('while.end')
+        
+        # Saltar a evaluar condición
+        self.builder.branch(cond_block)
+        
+        # Generar bloque de condición
+        self.builder.position_at_end(cond_block)
+        cond_val = self.visit(n.condition)
+        self.builder.cbranch(cond_val, body_block, end_block)
+        
+        # Generar cuerpo
+        self.builder.position_at_end(body_block)
+        self.visit(n.body)
+        if not self.builder.block.is_terminated:
+            self.builder.branch(cond_block)
+        
+        # Continuar después del while
+        self.builder.position_at_end(end_block)
+
+    def visit(self, n: DoWhileStmt):
+        '''
+        Genera código para do-while.
+        
+        Estructura:
+            br body_block
+        body_block:
+            ...
+            br cond_block
+        cond_block:
+            cond = ...
+            br cond, body_block, end_block
+        end_block:
+            ...
+        '''
+        body_block = self.current_function.append_basic_block('do.body')
+        cond_block = self.current_function.append_basic_block('do.cond')
+        end_block = self.current_function.append_basic_block('do.end')
+        
+        # Saltar al cuerpo
+        self.builder.branch(body_block)
+        
+        # Generar cuerpo
+        self.builder.position_at_end(body_block)
+        self.visit(n.body)
+        if not self.builder.block.is_terminated:
+            self.builder.branch(cond_block)
+        
+        # Generar bloque de condición
+        self.builder.position_at_end(cond_block)
+        cond_val = self.visit(n.condition)
+        self.builder.cbranch(cond_val, body_block, end_block)
+        
+        # Continuar después del do-while
+        self.builder.position_at_end(end_block)
+
+    def visit(self, n: ForStmt):
+        '''
+        Genera código para for.
+        
+        for (init; cond; update) body
+        
+        Estructura:
+            init
+            br cond_block
+        cond_block:
+            cond = ...
+            br cond, body_block, end_block
+        body_block:
+            ...
+            br update_block
+        update_block:
+            update
+            br cond_block
+        end_block:
+            ...
+        '''
+        # Inicialización
+        if n.init:
+            self.visit(n.init)
+        
+        cond_block = self.current_function.append_basic_block('for.cond')
+        body_block = self.current_function.append_basic_block('for.body')
+        update_block = self.current_function.append_basic_block('for.update')
+        end_block = self.current_function.append_basic_block('for.end')
+        
+        # Saltar a condición
+        self.builder.branch(cond_block)
+        
+        # Generar bloque de condición
+        self.builder.position_at_end(cond_block)
+        if n.condition:
+            cond_val = self.visit(n.condition)
+            self.builder.cbranch(cond_val, body_block, end_block)
+        else:
+            # Sin condición = bucle infinito
+            self.builder.branch(body_block)
+        
+        # Generar cuerpo
+        self.builder.position_at_end(body_block)
+        self.visit(n.body)
+        if not self.builder.block.is_terminated:
+            self.builder.branch(update_block)
+        
+        # Generar actualización
+        self.builder.position_at_end(update_block)
+        if n.update:
+            self.visit(n.update)
+        self.builder.branch(cond_block)
+        
+        # Continuar después del for
+        self.builder.position_at_end(end_block)
+
     # =====================================================================
     # Nodos de Expresiones - Literales
     # =====================================================================
@@ -327,10 +605,29 @@ class LLVMCodeGenerator(Visitor):
     def visit(self, n: VarLocation):
         '''
         Genera código para leer (cargar) una variable.
-        Ej: ... = x + 5; (esto es el 'x')
+        Es inteligente: si es un array, pasa el puntero;
+        si es un tipo simple, carga el valor.
         '''
         var_name = n.name
-        var_ptr = self.vars[var_name]
+        var_ptr = self.vars[var_name] 
+
+        # El checker (checker.py) anotó el nodo con su tipo B-Minor.
+        # n.type será 'integer', 'float', o una instancia de ArrayType.
+        
+        # Si el tipo del nodo es ArrayType, estamos pasándolo como argumento.
+        if isinstance(n.type, ArrayType):
+            
+            # Caso 1: Array local (e.g. numeros: array[5] integer)
+            # var_ptr es i64* (puntero al primer elemento)
+            if isinstance(var_ptr.type.pointee, (ir.IntType, ir.DoubleType, ir.IntType, ir.IntType)):
+                return var_ptr # Retorna i64* o double*
+            
+            # Caso 2: Array como parámetro (e.g. arr: array[] integer)
+            # var_ptr es i64** (puntero a un puntero)
+            elif isinstance(var_ptr.type.pointee, ir.PointerType):
+                return self.builder.load(var_ptr, name=f"{var_name}_ptr") # Carga para obtener i64*
+
+        # Si no es un array, es un tipo simple. Cargar el valor.
         return self.builder.load(var_ptr, name=var_name + "_val")
 
     def visit(self, n: ArraySubscript):
@@ -341,11 +638,14 @@ class LLVMCodeGenerator(Visitor):
         # Obtener puntero base del array
         base_location = n.location
         if isinstance(base_location, VarLocation):
-            array_ptr = self.vars[base_location.name]
+            array_ptr_or_ptr_ptr = self.vars[base_location.name]
         else:
-            # Arrays anidados
-            array_ptr = self.visit(base_location)
-        
+            array_ptr_or_ptr_ptr = self.visit(base_location)
+            
+        array_ptr = array_ptr_or_ptr_ptr
+        if isinstance(array_ptr.type.pointee, ir.PointerType):
+            array_ptr = self.builder.load(array_ptr, name="array_ptr")
+            
         # Obtener índice
         index_val = self.visit(n.index)
         
@@ -354,6 +654,27 @@ class LLVMCodeGenerator(Visitor):
         
         # Cargar valor
         return self.builder.load(elem_ptr, name='array_elem')
+
+    def visit(self, n: FuncCall):
+        '''
+        Genera código para llamada a función.
+        '''
+        func_name = n.name
+        
+        # Obtener función
+        if func_name not in self.functions:
+            raise RuntimeError(f"Función '{func_name}' no declarada")
+        
+        func = self.functions[func_name]
+        
+        # Evaluar argumentos
+        args = []
+        for arg_node in n.args:
+            arg_val = self.visit(arg_node)
+            args.append(arg_val)
+        
+        # Llamar función
+        return self.builder.call(func, args, name=f'call_{func_name}')
 
     # =====================================================================
     # Nodos de Expresiones - Operaciones Binarias
@@ -466,8 +787,7 @@ class LLVMCodeGenerator(Visitor):
         elif op_type == 'string':
             # Concatenación de strings (requiere función de runtime)
             if op == '+':
-                # Por ahora, esto requeriría una función de runtime especial
-                # que no implementaremos aquí
+                # Aun no implementado
                 raise NotImplementedError("Concatenación de strings requiere runtime especial")
 
         # Si llegamos aquí, operación no soportada
@@ -559,12 +879,7 @@ class LLVMCodeGenerator(Visitor):
         
         # Retornar según pre/post
         return new_val if is_pre else current_val
-
-
-# =====================================================================
-# Función para generar IR desde AST
-# =====================================================================
-
+    
 def generate_code(ast):
     '''
     Genera código LLVM IR desde un AST de B-Minor.
@@ -578,97 +893,3 @@ def generate_code(ast):
     generator = LLVMCodeGenerator()
     generator.visit(ast)
     return str(generator.module)
-
-
-# =====================================================================
-# Funciones de Runtime (para enlazar con el ejecutable)
-# =====================================================================
-
-RUNTIME_CODE = '''
-#include <stdio.h>
-#include <stdbool.h>
-
-// Funciones de runtime para print
-void _print_integer(long long x) {
-    printf("%lld", x);
-}
-
-void _print_float(double x) {
-    printf("%g", x);
-}
-
-void _print_boolean(bool x) {
-    printf("%s", x ? "true" : "false");
-}
-
-void _print_char(char x) {
-    printf("%c", x);
-}
-
-void _print_string(const char* x) {
-    printf("%s", x);
-}
-'''
-
-def save_runtime(filename='runtime.c'):
-    '''Guarda el código de runtime en un archivo C'''
-    with open(filename, 'w') as f:
-        f.write(RUNTIME_CODE)
-
-
-# =====================================================================
-# Ejemplo de uso
-# =====================================================================
-
-if __name__ == '__main__':
-    from parser import parse
-    from checker import Check
-    from errors import errors_detected, clear_errors
-    
-    # Código de prueba
-    codigo = '''
-    x: integer = 10;
-    y: integer = 20;
-    z: integer = x + y * 2;
-    f: float = 3.14;
-    b: boolean = x < y;
-    c: char = 'A';
-    s: string = "Hello, B-Minor!";
-    
-    print x, " + ", y, " * 2 = ", z;
-    print "Pi = ", f;
-    print "x < y? ", b;
-    print "Char: ", c;
-    print s;
-    '''
-    
-    # Parsear
-    clear_errors()
-    ast = parse(codigo)
-    
-    if errors_detected():
-        print(f"Errores de sintaxis: {errors_detected()}")
-    else:
-        # Verificar semántica
-        env = Check.checker(ast)
-        
-        if errors_detected():
-            print(f"Errores semánticos: {errors_detected()}")
-        else:
-            # Generar código
-            ir_code = generate_code(ast)
-            print(ir_code)
-            
-            # Guardar
-            with open('output.ll', 'w') as f:
-                f.write(ir_code)
-            
-            save_runtime()
-            
-            print("\n✓ Código generado en output.ll")
-            print("✓ Runtime guardado en runtime.c")
-            print("\nPara compilar:")
-            print("  llc -filetype=obj output.ll -o output.o")
-            print("  clang -c runtime.c -o runtime.o")
-            print("  clang output.o runtime.o -o programa")
-            print("  ./programa")

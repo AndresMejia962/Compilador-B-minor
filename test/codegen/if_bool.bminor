@@ -1,0 +1,8 @@
+main: function void() = {
+    flag: boolean = true;
+    if (flag) {
+        print 1;
+    } else {
+        print 0;
+    }
+}
