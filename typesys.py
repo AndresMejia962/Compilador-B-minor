@@ -30,7 +30,7 @@ _bin_ops = {
 	('integer', '*', 'integer') : 'integer',
 	('integer', '/', 'integer') : 'integer',
 	('integer', '%', 'integer') : 'integer',
-
+	('integer', '^', 'integer') : 'integer',
 	('integer', '=', 'integer') : 'integer',
 
 	('integer', '<', 'integer')  : 'boolean',
@@ -46,6 +46,7 @@ _bin_ops = {
 	('float', '*', 'float') : 'float',
 	('float', '/', 'float') : 'float',
 	('float', '%', 'float') : 'float',
+	('float', '^', 'float') : 'float',
 
 	('float', '=', 'float') : 'float',
 
