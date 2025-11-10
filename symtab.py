@@ -5,102 +5,95 @@ from rich         import print
 
 from model        import Node
 
-class Symtab:
+class SymbolTable:
 	'''
-	Una tabla de símbolos.  Este es un objeto simple que sólo
-	mantiene una hashtable (dict) de nombres de simbolos y los
-	nodos de declaracion o definición de funciones a los que se
-	refieren.
-	Hay una tabla de simbolos separada para cada elemento de
-	código que tiene su propio contexto (por ejemplo cada función,
-	tendra su propia tabla de simbolos). Como resultado,
-	las tablas de simbolos se pueden anidar si los elementos de
-	código estan anidados y las búsquedas de las tablas de
-	simbolos se repetirán hacia arriba a través de los padres
-	para representar las reglas de alcance léxico.
+	Estructura de datos para gestionar símbolos del compilador.
+	Implementa un diccionario que mapea nombres de símbolos a sus
+	correspondientes nodos AST (declaraciones o definiciones).
+	Cada contexto de código (función, bloque, etc.) posee su propia
+	tabla de símbolos. Las tablas pueden anidarse para reflejar
+	la estructura del código, y las búsquedas se propagan hacia
+	arriba a través de la jerarquía para implementar el alcance léxico.
 	'''
-	class SymbolDefinedError(Exception):
+	class DuplicateSymbolError(Exception):
 		'''
-		Se genera una excepción cuando el código intenta agregar
-		un simbol a una tabla donde el simbol ya se ha definido.
-		Tenga en cuenta que 'definido' se usa aquí en el sentido
-		del lenguaje C, es decir, 'se ha asignado espacio para el
-		simbol', en lugar de una declaración.
+		Excepción lanzada al intentar insertar un símbolo que ya
+		existe en la tabla. 'Definido' se refiere a que ya se ha
+		reservado espacio para el símbolo (estilo C), no solo
+		declarado.
 		'''
 		pass
 		
-	class SymbolConflictError(Exception):
+	class TypeConflictError(Exception):
 		'''
-		Se produce una excepción cuando el código intenta agregar
-		un símbolo a una tabla donde el símbolo ya existe y su tipo
-		difiere del existente previamente.
+		Excepción lanzada cuando se intenta agregar un símbolo
+		con un nombre existente pero con un tipo diferente.
 		'''
 		pass
 		
-	def __init__(self, name, parent=None):
+	def __init__(self, table_name, parent_table=None):
 		'''
-		Crea una tabla de símbolos vacia con la tabla de
-		simbolos padre dada.
+		Inicializa una tabla de símbolos vacía, opcionalmente
+		vinculada a una tabla padre.
 		'''
-		self.name = name
-		self.entries = {}
-		self.parent = parent
+		self.name = table_name
+		self.symbols = {}
+		self.parent = parent_table
 		if self.parent:
 			self.parent.children.append(self)
 		self.children = []
 
-	def __getitem__(self, name):
-		return self.entries[name]
+	def __getitem__(self, symbol_name):
+		return self.symbols[symbol_name]
 
-	def __setitem__(self, name, value):
-		self.entries[name] = value
+	def __setitem__(self, symbol_name, symbol_value):
+		self.symbols[symbol_name] = symbol_value
 
-	def __delitem__(self, name):
-		del self.entries[name]
+	def __delitem__(self, symbol_name):
+		del self.symbols[symbol_name]
 
-	def __contains__(self, name):
-		if name in self.entries:
-			return self.entries[name]
+	def __contains__(self, symbol_name):
+		if symbol_name in self.symbols:
+			return self.symbols[symbol_name]
 		return False
 
-	def add(self, name, value):
+	def add(self, symbol_name, symbol_value):
 		'''
-		Agrega un simbol con el valor dado a la tabla de simbolos.
-		El valor suele ser un nodo AST que representa la declaración
-		o definición de una función, variable (por ejemplo, Declaración
-		o FuncDeclaration)
+		Inserta un símbolo en la tabla con el valor especificado.
+		El valor normalmente es un nodo AST que representa una
+		declaración o definición (variable, función, etc.)
 		'''
-		if name in self.entries:
+		if symbol_name in self.symbols:
 			# Comparar sym_type si existe, sino comparar type
-			existing_type = getattr(self.entries[name], 'sym_type', getattr(self.entries[name], 'type', None))
-			new_type = getattr(value, 'sym_type', getattr(value, 'type', None))
+			existing_type = getattr(self.symbols[symbol_name], 'sym_type', getattr(self.symbols[symbol_name], 'type', None))
+			new_type = getattr(symbol_value, 'sym_type', getattr(symbol_value, 'type', None))
 			if existing_type != new_type:
-				raise Symtab.SymbolConflictError()
+				raise SymbolTable.TypeConflictError()
 			else:
-				raise Symtab.SymbolDefinedError()
-		self.entries[name] = value
+				raise SymbolTable.DuplicateSymbolError()
+		self.symbols[symbol_name] = symbol_value
 		
-	def get(self, name):
+	def get(self, symbol_name):
 		'''
-		Recupera el símbol con el nombre dado de la tabla de
-		simbol, recorriendo hacia arriba a traves de las tablas
-		de simbol principales si no se encuentra en la actual.
+		Busca un símbolo por nombre en esta tabla y en las tablas
+		padre si no se encuentra localmente, implementando el
+		alcance léxico.
 		'''
-		if name in self.entries:
-			return self.entries[name]
+		if symbol_name in self.symbols:
+			return self.symbols[symbol_name]
 		elif self.parent:
-			return self.parent.get(name)
+			return self.parent.get(symbol_name)
 		return None
 		
 	def print(self):
-		table = Table(title = f"Symbol Table: '{self.name}'")
-		table.add_column('key', style='cyan')
-		table.add_column('value', style='bright_green')
+		display_table = Table(title = f"Symbol Table: '{self.name}'")
+		display_table.add_column('key', style='cyan')
+		display_table.add_column('value', style='bright_green')
 		
-		for k,v in self.entries.items():
-			value = f"{v.__class__.__name__}({v.name})" if isinstance(v, Node) else f"{v}"
-			table.add_row(k, value)
-		print(table, '\n')
+		for key, val in self.symbols.items():
+			display_value = f"{val.__class__.__name__}({val.name})" if isinstance(val, Node) else f"{val}"
+			display_table.add_row(key, display_value)
+		print(display_table, '\n')
 		
-		for child in self.children:
-			child.print()
+		for child_table in self.children:
+			child_table.print()

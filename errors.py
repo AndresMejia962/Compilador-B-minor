@@ -1,32 +1,33 @@
 # errors.py
 '''
-Gestión de errores del compilador.
+Sistema de manejo de errores para el compilador.
 
-Una de las partes más importantes (y molestas) de escribir un compilador
-es la notificación fiable de mensajes de error al usuario. Este archivo
-debería consolidar algunas funciones básicas de gestión de errores en un solo lugar.
-Facilitar la notificación de errores. Facilitar la detección de errores.
+Uno de los aspectos críticos en el desarrollo de compiladores
+es proporcionar mensajes de error claros y precisos. Este módulo
+centraliza las funciones básicas de gestión de errores.
+Permite reportar errores de manera consistente. Permite verificar
+si existen errores en el proceso de compilación.
 
-Podría ampliarse para que sea más potente posteriormente.
+Puede extenderse en el futuro para ofrecer más funcionalidades.
 
-Variable global que indica si se ha producido algún error. El compilador puede 
-consultar esto posteriormente para decidir si debe detenerse.
+Contador global que registra la cantidad de errores encontrados.
+El compilador utiliza este valor para determinar si debe abortar.
 '''
 from rich import print
 
-_errors_detected = 0
+_error_count = 0
 
-def error(message, lineno=None):
-	global _errors_detected
-	if lineno:
-		print(f'{lineno}: [red]{message}[/red]')
+def error(error_message, line_number=None):
+	global _error_count
+	if line_number:
+		print(f'{line_number}: [red]{error_message}[/red]')
 	else:
-		print(f"[red]{message}[/red]")
-	_errors_detected += 1
+		print(f"[red]{error_message}[/red]")
+	_error_count += 1
 	
 def errors_detected():
-	return _errors_detected
+	return _error_count
 	
 def clear_errors():
-	global _errors_detected
-	_errors_detected = 0
+	global _error_count
+	_error_count = 0

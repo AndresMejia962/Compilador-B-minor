@@ -7,176 +7,176 @@ from rich import print
 from bminor_lexer import Lexer
 from parser import parse
 from errors import errors_detected, clear_errors
-from checker import Check
+from checker import SemanticAnalyzer
 from codegen import generate_code
 
-def scan_file(filepath):
-    """Realiza el análisis léxico de un archivo y muestra los tokens."""
+def perform_lexical_analysis(input_file):
+    """Ejecuta el escaneo léxico del código fuente y presenta los tokens identificados."""
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            code = f.read()
+        with open(input_file, 'r', encoding='utf-8') as source_file:
+            source_code = source_file.read()
     except FileNotFoundError:
-        print(f"Error: El archivo '{filepath}' no fue encontrado.")
+        print(f"Error: El archivo '{input_file}' no fue encontrado.")
         sys.exit(1)
 
-    lexer = Lexer()
-    tokens_list = []
-    errors_list = []
+    token_analyzer = Lexer()
+    identified_tokens = []
+    lexical_errors = []
 
-    # Captura de errores léxicos
-    def lexer_error(t):
-        error_message = f"Error Léxico: Carácter ilegal '{t.value[0]}' en la línea {t.lineno}"
-        errors_list.append(error_message)
-        lexer.index += 1
-    lexer.error = lexer_error
+    # Manejo de errores durante el análisis léxico
+    def handle_lexical_error(token):
+        error_msg = f"Error Léxico: Carácter ilegal '{token.value[0]}' en la línea {token.lineno}"
+        lexical_errors.append(error_msg)
+        token_analyzer.index += 1
+    token_analyzer.error = handle_lexical_error
 
-    # Tokenización
-    for tok in lexer.tokenize(code):
-        if tok.type == 'ERROR':
-            errors_list.append(tok.value)
+    # Proceso de identificación de tokens
+    for token in token_analyzer.tokenize(source_code):
+        if token.type == 'ERROR':
+            lexical_errors.append(token.value)
         else:
-            tokens_list.append(tok)
+            identified_tokens.append(token)
 
-    if errors_list:
-        for error in errors_list:
-            print(error)
+    if lexical_errors:
+        for err in lexical_errors:
+            print(err)
     
-    if not tokens_list and not errors_list:
+    if not identified_tokens and not lexical_errors:
         print("Análisis léxico completado: no se encontraron tokens.")
         return
 
-    if tokens_list:
-        line_starts = [0] + [i + 1 for i, char in enumerate(code) if char == '\n']
+    if identified_tokens:
+        line_offsets = [0] + [i + 1 for i, char in enumerate(source_code) if char == '\n']
         
-        table_data = []
-        for tok in tokens_list:
-            line_start_index = line_starts[tok.lineno - 1]
-            columna = tok.index - line_start_index + 1
-            table_data.append([tok.type, repr(tok.value), tok.lineno, columna])
+        token_table = []
+        for token in identified_tokens:
+            line_offset = line_offsets[token.lineno - 1]
+            column_pos = token.index - line_offset + 1
+            token_table.append([token.type, repr(token.value), token.lineno, column_pos])
                 
-        df = pd.DataFrame(table_data, columns=["TIPO", "VALOR", "LINEA", "COLUMNA"])
-        df.index = range(1, len(df) + 1)
-        print(tabulate(df, headers='keys', tablefmt='grid', stralign='left', showindex="TOKEN #"))
+        token_df = pd.DataFrame(token_table, columns=["TIPO", "VALOR", "LINEA", "COLUMNA"])
+        token_df.index = range(1, len(token_df) + 1)
+        print(tabulate(token_df, headers='keys', tablefmt='grid', stralign='left', showindex="TOKEN #"))
 
-def parse_file(filepath):
-    """Realiza el análisis sintáctico de un archivo y muestra el AST."""
+def perform_syntax_analysis(input_file):
+    """Ejecuta el análisis sintáctico del código y presenta el árbol de sintaxis abstracta."""
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            code = f.read()
+        with open(input_file, 'r', encoding='utf-8') as source_file:
+            source_code = source_file.read()
     except FileNotFoundError:
-        print(f"Error: El archivo '{filepath}' no fue encontrado.")
+        print(f"Error: El archivo '{input_file}' no fue encontrado.")
         sys.exit(1)
 
     clear_errors()
     
-    ast = parse(code)
+    syntax_tree = parse(source_code)
     
     if not errors_detected():
         print("[bold green]Análisis sintáctico completado sin errores.[/bold green]")
-        if ast:
+        if syntax_tree:
             print("[bold blue]Mostrando Árbol de Sintaxis Abstracta (AST):[/bold blue]")
-            tree_vis = ast.pretty()
-            print(tree_vis)
+            tree_visualization = syntax_tree.pretty()
+            print(tree_visualization)
     else:
         print(f"[bold red]Se encontraron {errors_detected()} errores de sintaxis.[/bold red]")
 
-def check_file(filepath):
-    """Realiza el análisis sintáctico y semántico de un archivo."""
+def perform_semantic_analysis(input_file):
+    """Ejecuta el análisis sintáctico y semántico completo del código fuente."""
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            code = f.read()
+        with open(input_file, 'r', encoding='utf-8') as source_file:
+            source_code = source_file.read()
     except FileNotFoundError:
-        print(f"Error: El archivo '{filepath}' no fue encontrado.")
+        print(f"Error: El archivo '{input_file}' no fue encontrado.")
         sys.exit(1)
 
     clear_errors()
     
-    ast = parse(code)
+    syntax_tree = parse(source_code)
     
-    # Detenerse si hay errores de sintaxis antes de continuar
+    # Verificar errores sintácticos antes de proceder
     if errors_detected():
         print(f"[bold red]Se encontraron {errors_detected()} errores de sintaxis. No se puede continuar con el análisis semántico.[/bold red]")
         return
         
     print("[bold blue]Análisis sintáctico completado. Iniciando análisis semántico...[/bold blue]")
     
-    # Iniciar el análisis semántico
-    global_env = Check.checker(ast)
+    # Ejecutar verificación semántica
+    global_symbol_table = SemanticAnalyzer.checker(syntax_tree)
     
     if not errors_detected():
         print("[bold green]Análisis semántico completado sin errores.[/bold green]")
         print("[bold blue]Mostrando Tablas de Símbolos:[/bold blue]")
-        global_env.print()
+        global_symbol_table.print()
     else:
         print(f"[bold red]Se encontraron {errors_detected()} errores en total.[/bold red]")
 
-def codegen_file(filepath):
+def generate_llvm_code(input_file):
     """
-    Realiza el pipeline completo: Parse, Check y Generación de Código.
+    Ejecuta el proceso completo de compilación: Análisis, Verificación y Generación de Código IR.
     """
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            code = f.read()
+        with open(input_file, 'r', encoding='utf-8') as source_file:
+            source_code = source_file.read()
     except FileNotFoundError:
-        print(f"Error: El archivo '{filepath}' no fue encontrado.")
+        print(f"Error: El archivo '{input_file}' no fue encontrado.")
         sys.exit(1)
 
     clear_errors()
     
-    # 1. Fase de Parseo
+    # Primera etapa: Análisis léxico y sintáctico
     print("Fase 1: Análisis Léxico y Sintáctico...")
-    ast = parse(code)
+    syntax_tree = parse(source_code)
     if errors_detected():
         print(f"[bold red]Se encontraron {errors_detected()} errores de sintaxis. No se puede continuar.[/bold red]")
         return
     print("Análisis sintáctico completado sin errores.\n")
 
-    # 2. Fase de Chequeo
+    # Segunda etapa: Verificación semántica
     print("Fase 2: Análisis Semántico...")
-    global_env = Check.checker(ast)
+    global_symbol_table = SemanticAnalyzer.checker(syntax_tree)
     if errors_detected():
         print(f"[bold red]Se encontraron {errors_detected()} errores semánticos. No se puede continuar.[/bold red]")
         return
     print("Análisis semántico completado sin errores.\n")
 
-    # 3. Fase de Generación de Código
+    # Tercera etapa: Generación de código intermedio
     print("Fase 3: Generación de Código LLVM...")
     try:
-        ir_code = generate_code(ast)  # Llama a la función importada
+        llvm_ir_output = generate_code(syntax_tree)
         
-        output_filename = "output.ll"
-        with open(output_filename, 'w') as f:
-            f.write(ir_code)
+        output_file = "output.ll"
+        with open(output_file, 'w') as output:
+            output.write(llvm_ir_output)
         
-        print(f"Código LLVM IR generado exitosamente y guardado en '{output_filename}'")
+        print(f"Código LLVM IR generado exitosamente y guardado en '{output_file}'")
 
-    except Exception as e:
+    except Exception as ex:
         print(f"Error durante la generación de código:")
-        print(f"   {type(e).__name__}: {e}")
+        print(f"   {type(ex).__name__}: {ex}")
         import traceback
         traceback.print_exc()
 
 def main():
-    parser = argparse.ArgumentParser(description="Compilador para el lenguaje B-Minor 2025.")  
-    parser.add_argument('--scan', action='store_true', help='Realiza el análisis léxico del archivo.')
-    parser.add_argument('--parse', action='store_true', help='Realiza el análisis sintáctico del archivo.')
-    parser.add_argument('--check', action='store_true', help='Realiza el análisis sintáctico y semántico del archivo.')
-    parser.add_argument('--codegen', action='store_true', help='Genera el código LLVM IR (.ll) del archivo.')
+    argument_parser = argparse.ArgumentParser(description="Compilador para el lenguaje B-Minor 2025.")  
+    argument_parser.add_argument('--scan', action='store_true', help='Realiza el análisis léxico del archivo.')
+    argument_parser.add_argument('--parse', action='store_true', help='Realiza el análisis sintáctico del archivo.')
+    argument_parser.add_argument('--check', action='store_true', help='Realiza el análisis sintáctico y semántico del archivo.')
+    argument_parser.add_argument('--codegen', action='store_true', help='Genera el código LLVM IR (.ll) del archivo.')
     
-    parser.add_argument('filepath', type=str, help='El archivo .bminor a procesar.')
-    args = parser.parse_args()
+    argument_parser.add_argument('filepath', type=str, help='El archivo .bminor a procesar.')
+    parsed_args = argument_parser.parse_args()
 
-    if args.scan:
-        scan_file(args.filepath)
-    elif args.parse:
-        parse_file(args.filepath)
-    elif args.check:
-        check_file(args.filepath)
-    elif args.codegen:
-        codegen_file(args.filepath)
+    if parsed_args.scan:
+        perform_lexical_analysis(parsed_args.filepath)
+    elif parsed_args.parse:
+        perform_syntax_analysis(parsed_args.filepath)
+    elif parsed_args.check:
+        perform_semantic_analysis(parsed_args.filepath)
+    elif parsed_args.codegen:
+        generate_llvm_code(parsed_args.filepath)
     else:
         print("Acción no especificada. Debes usar --scan, --parse, --check, o --codegen.")
-        parser.print_help()
+        argument_parser.print_help()
         sys.exit(1)
 
 if __name__ == '__main__':

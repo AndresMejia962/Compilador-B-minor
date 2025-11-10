@@ -4,36 +4,36 @@ from typing  import Union, List
 
 from errors  import error, errors_detected
 from model   import *
-from symtab  import Symtab
+from symtab  import SymbolTable
 from typesys import check_binop, check_unaryop
 
-class Check(Visitor):
+class SemanticAnalyzer(Visitor):
     @classmethod
-    def checker(cls, n: Program):
-        checker_instance = cls()
-        # Crear una nueva tabla de simbolos global
-        env = Symtab('global')
-        # Visitar todas las declaraciones del programa
-        checker_instance.visit(n, env)
-        return env
+    def checker(cls, program_node: Program):
+        analyzer = cls()
+        # Inicializar tabla de símbolos global
+        global_symbols = SymbolTable('global')
+        # Procesar todas las declaraciones del programa
+        analyzer.visit(program_node, global_symbols)
+        return global_symbols
 
     # =====================================================================
-    # Nodos del Programa y Bloques
+    # Procesamiento de Programa y Bloques
     # =====================================================================
-    def visit(self, n: Program, env: Symtab):
-        for decl in n.body:
-            decl.accept(self, env)
+    def visit(self, program_node: Program, symbol_table: SymbolTable):
+        for declaration in program_node.body:
+            declaration.accept(self, symbol_table)
 
-    def visit(self, n: BlockStmt, env: Symtab):
-        block_env = Symtab('block', parent=env)
-        for stmt in n.statements:
-            stmt.accept(self, block_env)
+    def visit(self, block_node: BlockStmt, symbol_table: SymbolTable):
+        local_symbols = SymbolTable('block', parent_table=symbol_table)
+        for statement in block_node.statements:
+            statement.accept(self, local_symbols)
 
     # =====================================================================
     # Declaraciones
     # =====================================================================
     
-    def visit(self, n: VarDecl, env: Symtab):
+    def visit(self, n: VarDecl, env: SymbolTable):
         # Asignar el tipo PRIMERO
         n.sym_type = n.type.name
         
@@ -44,12 +44,12 @@ class Check(Visitor):
 
         try:
             env.add(n.name, n)
-        except Symtab.SymbolDefinedError:
+        except SymbolTable.DuplicateSymbolError:
             error(f"La Variable '{n.name}' ya ha sido definida en este alcance", n.lineno)
-        except Symtab.SymbolConflictError:
+        except SymbolTable.TypeConflictError:
             error(f"Conflicto de tipos: La Variable '{n.name}' ya existe con un tipo diferente", n.lineno)
 
-    def visit(self, n: ArrayDecl, env: Symtab):
+    def visit(self, n: ArrayDecl, env: SymbolTable):
         # El tipo del array ya está en n.type (que es un ArrayType)
         n.sym_type = n.type
 
@@ -71,7 +71,7 @@ class Check(Visitor):
 
         try:
             env.add(n.name, n)
-        except Symtab.SymbolDefinedError:
+        except SymbolTable.DuplicateSymbolError:
             error(f"El Array '{n.name}' ya ha sido definido en este alcance", n.lineno)
 
     def _check_array_sizes(self, array_type, env, lineno):
@@ -97,18 +97,18 @@ class Check(Visitor):
             return typ
         return str(typ)
 
-    def visit(self, n: FuncDecl, env: Symtab):
+    def visit(self, n: FuncDecl, env: SymbolTable):
         # Asignar el tipo de retorno de la función
         n.sym_type = n.type.name
         
         try:
             env.add(n.name, n)
-        except Symtab.SymbolDefinedError:
+        except SymbolTable.DuplicateSymbolError:
             error(f"La Función '{n.name}' ya ha sido definida", n.lineno)
             return  # No continuar si hay error de redefinición
 
         # Crear entorno local para la función
-        func_env = Symtab(n.name, parent=env)
+        func_env = SymbolTable(n.name, parent_table=env)
         func_env.add('$func', n)
         
         # Procesar parámetros
@@ -119,7 +119,7 @@ class Check(Visitor):
         if n.body:
             n.body.accept(self, func_env)
 
-    def visit(self, n: Param, env: Symtab):
+    def visit(self, n: Param, env: SymbolTable):
         # Determinar el tipo del parámetro
         if isinstance(n.type, SimpleType):
             n.sym_type = n.type.name
@@ -130,18 +130,18 @@ class Check(Visitor):
         
         try:
             env.add(n.name, n)
-        except Symtab.SymbolDefinedError:
+        except SymbolTable.DuplicateSymbolError:
             error(f"El Parámetro '{n.name}' ya está definido", n.lineno)
 
     # =====================================================================
     # Sentencias
     # =====================================================================
     
-    def visit(self, n: PrintStmt, env: Symtab):
+    def visit(self, n: PrintStmt, env: SymbolTable):
         for value in n.values:
             value.accept(self, env)
 
-    def visit(self, n: ReturnStmt, env: Symtab):
+    def visit(self, n: ReturnStmt, env: SymbolTable):
         func_decl = env.get('$func')
         if not func_decl:
             error("'return' utilizado por fuera de una función", n.lineno)
@@ -159,7 +159,7 @@ class Check(Visitor):
             if expected_type != 'void':
                 error(f"La función '{func_decl.name}' debe retornar un valor de tipo '{expected_type}'", n.lineno)
 
-    def visit(self, n: IfStmt, env: Symtab):
+    def visit(self, n: IfStmt, env: SymbolTable):
         n.condition.accept(self, env)
         if n.condition.type != 'boolean':
             error(f"La condición en IF debe ser 'boolean', no '{n.condition.type}'", n.lineno)
@@ -168,8 +168,8 @@ class Check(Visitor):
         if n.false_body:
             n.false_body.accept(self, env)
 
-    def visit(self, n: ForStmt, env: Symtab):
-        loop_env = Symtab('for_loop', parent=env)
+    def visit(self, n: ForStmt, env: SymbolTable):
+        loop_env = SymbolTable('for_loop', parent_table=env)
         loop_env.add('$loop', True)
         
         if n.init: 
@@ -185,17 +185,17 @@ class Check(Visitor):
         
         n.body.accept(self, loop_env)
     
-    def visit(self, n: WhileStmt, env: Symtab):
+    def visit(self, n: WhileStmt, env: SymbolTable):
         n.condition.accept(self, env)
         if n.condition.type != 'boolean':
             error(f"La condición en WHILE debe ser 'boolean', no '{n.condition.type}'", n.lineno)
         
-        loop_env = Symtab('while_loop', parent=env)
+        loop_env = SymbolTable('while_loop', parent_table=env)
         loop_env.add('$loop', True)
         n.body.accept(self, loop_env)
 
-    def visit(self, n: DoWhileStmt, env: Symtab):
-        loop_env = Symtab('dowhile_loop', parent=env)
+    def visit(self, n: DoWhileStmt, env: SymbolTable):
+        loop_env = SymbolTable('dowhile_loop', parent_table=env)
         loop_env.add('$loop', True)
         n.body.accept(self, loop_env)
         
@@ -207,7 +207,7 @@ class Check(Visitor):
     # Expresiones
     # =====================================================================
     
-    def visit(self, n: Assignment, env: Symtab):
+    def visit(self, n: Assignment, env: SymbolTable):
         n.location.accept(self, env)
         n.value.accept(self, env)
 
@@ -217,7 +217,7 @@ class Check(Visitor):
         if not getattr(n.location, 'mutable', False):
             error(f"El destino de la asignación no es modificable", n.lineno)
 
-    def visit(self, n: BinOper, env: Symtab):
+    def visit(self, n: BinOper, env: SymbolTable):
         n.left.accept(self, env)
         n.right.accept(self, env)
         
@@ -226,7 +226,7 @@ class Check(Visitor):
             error(f'Operación inválida: {n.left.type} {n.op} {n.right.type}', n.lineno)
             n.type = 'error'
 
-    def visit(self, n: UnaryOper, env: Symtab):
+    def visit(self, n: UnaryOper, env: SymbolTable):
         n.expr.accept(self, env)
         
         # Operadores unarios normales (-, !, +)
@@ -243,7 +243,7 @@ class Check(Visitor):
                 error(f"El operando de '{n.op}' debe ser una ubicación modificable", n.lineno)
             n.type = n.expr.type
 
-    def visit(self, n: Literal, env: Symtab):
+    def visit(self, n: Literal, env: SymbolTable):
         if isinstance(n, Integer): 
             n.type = 'integer'
         elif isinstance(n, Float): 
@@ -255,7 +255,7 @@ class Check(Visitor):
         elif isinstance(n, String): 
             n.type = 'string'
 
-    def visit(self, n: VarLocation, env: Symtab):
+    def visit(self, n: VarLocation, env: SymbolTable):
         decl = env.get(n.name)
         if not decl:
             error(f"Nombre no definido '{n.name}'", n.lineno)
@@ -266,7 +266,7 @@ class Check(Visitor):
             # Las funciones no son mutables, las variables sí
             n.mutable = not isinstance(decl, FuncDecl)
     
-    def visit(self, n: ArraySubscript, env: Symtab):
+    def visit(self, n: ArraySubscript, env: SymbolTable):
         n.location.accept(self, env)
         n.index.accept(self, env)
 
@@ -293,7 +293,7 @@ class Check(Visitor):
         
         n.mutable = True
 
-    def visit(self, n: FuncCall, env: Symtab):
+    def visit(self, n: FuncCall, env: SymbolTable):
         func_decl = env.get(n.name)
         if not func_decl:
             error(f"Función '{n.name}' no definida", n.lineno)
