@@ -1,104 +1,104 @@
 # codegen.py
 # ----------------------------------------------------------------------
-# Generador de Código LLVM para B-Minor 
-# Se ejecuta usando el comando --codegen en bminor.py
+# Generador de Código Intermedio LLVM para B-Minor 
+# Invocado mediante el comando --codegen en bminor.py
 
 from llvmlite import ir
 from model import *
 from model import Visitor
 
-class LLVMCodeGenerator(Visitor):
+class IRGenerator(Visitor):
     '''
-    Clase visitante para generar el IR de LLVM.
-    Hereda de tu 'model.Visitor'.
+    Visitante especializado en la generación de código intermedio LLVM.
+    Extiende la funcionalidad de 'model.Visitor'.
     '''
     def __init__(self):
-        # Módulo principal de LLVM
-        self.module = ir.Module(name='bminor')
+        # Módulo LLVM principal
+        self.llvm_module = ir.Module(name='bminor')
 
-        # Definición de tipos LLVM
-        self.int_type = ir.IntType(64)      # B-Minor: integer es i64
-        self.float_type = ir.DoubleType()   # B-Minor: float es double (IEEE 754)
-        self.bool_type = ir.IntType(1)      # B-Minor: boolean es i1
-        self.char_type = ir.IntType(8)      # B-Minor: char es i8
-        self.string_type = self.char_type.as_pointer()  # B-Minor: string es i8*
-        self.void_type = ir.VoidType()
+        # Tipos fundamentales de LLVM
+        self.tipo_entero = ir.IntType(64)      # B-Minor: integer corresponde a i64
+        self.tipo_flotante = ir.DoubleType()   # B-Minor: float corresponde a double (IEEE 754)
+        self.tipo_booleano = ir.IntType(1)      # B-Minor: boolean corresponde a i1
+        self.tipo_caracter = ir.IntType(8)      # B-Minor: char corresponde a i8
+        self.tipo_cadena = self.tipo_caracter.as_pointer()  # B-Minor: string corresponde a i8*
+        self.tipo_vacio = ir.VoidType()
 
-        # Mapa de tipos: de nombre de tipo de bminor (string) a tipo LLVM
-        self.typemap = {
-            'integer': self.int_type,
-            'float': self.float_type,
-            'boolean': self.bool_type,
-            'char': self.char_type,
-            'string': self.string_type,
-            'void': self.void_type,
+        # Mapeo de tipos: conversión de tipos B-Minor (string) a tipos LLVM
+        self.mapeo_tipos = {
+            'integer': self.tipo_entero,
+            'float': self.tipo_flotante,
+            'boolean': self.tipo_booleano,
+            'char': self.tipo_caracter,
+            'string': self.tipo_cadena,
+            'void': self.tipo_vacio,
         }
 
-        # --- Tabla de Símbolos de LLVM ---
-        # Mapea nombres de variables/funciones a sus punteros/funciones
-        self.vars = {}
-        self.functions = {}  # Diccionario de funciones LLVM
+        # --- Registro de Símbolos LLVM ---
+        # Asocia nombres de variables/funciones con sus referencias LLVM
+        self.variables = {}
+        self.funciones_llvm = {}  # Catálogo de funciones LLVM
 
-        # --- Contexto de función actual ---
-        self.current_function = None
-        self.builder = None
+        # --- Estado de función en ejecución ---
+        self.funcion_actual = None
+        self.constructor_ir = None
 
-        # --- Contador para strings literales ---
-        self.string_counter = 0
+        # --- Contador de cadenas literales ---
+        self.contador_cadenas = 0
 
-        # --- Declarar Funciones de Runtime ---
-        self._declare_runtime_functions()
+        # --- Registrar Funciones del Sistema ---
+        self._registrar_funciones_sistema()
 
-    def _declare_runtime_functions(self):
-        """Declara funciones de runtime para print"""
+    def _registrar_funciones_sistema(self):
+        """Registra las funciones del sistema necesarias para print"""
         
         # void _print_integer(i64)
-        print_int_type = ir.FunctionType(self.void_type, [self.int_type])
-        self._print_integer = ir.Function(self.module, print_int_type, name='_print_integer')
+        tipo_funcion_entero = ir.FunctionType(self.tipo_vacio, [self.tipo_entero])
+        self._print_integer = ir.Function(self.llvm_module, tipo_funcion_entero, name='_print_integer')
         
         # void _print_float(double)
-        print_float_type = ir.FunctionType(self.void_type, [self.float_type])
-        self._print_float = ir.Function(self.module, print_float_type, name='_print_float')
+        tipo_funcion_flotante = ir.FunctionType(self.tipo_vacio, [self.tipo_flotante])
+        self._print_float = ir.Function(self.llvm_module, tipo_funcion_flotante, name='_print_float')
         
         # void _print_boolean(i1)
-        print_bool_type = ir.FunctionType(self.void_type, [self.bool_type])
-        self._print_boolean = ir.Function(self.module, print_bool_type, name='_print_boolean')
+        tipo_funcion_booleano = ir.FunctionType(self.tipo_vacio, [self.tipo_booleano])
+        self._print_boolean = ir.Function(self.llvm_module, tipo_funcion_booleano, name='_print_boolean')
         
         # void _print_char(i8)
-        print_char_type = ir.FunctionType(self.void_type, [self.char_type])
-        self._print_char = ir.Function(self.module, print_char_type, name='_print_char')
+        tipo_funcion_caracter = ir.FunctionType(self.tipo_vacio, [self.tipo_caracter])
+        self._print_char = ir.Function(self.llvm_module, tipo_funcion_caracter, name='_print_char')
         
         # void _print_string(i8*)
-        print_string_type = ir.FunctionType(self.void_type, [self.string_type])
-        self._print_string = ir.Function(self.module, print_string_type, name='_print_string')
+        tipo_funcion_cadena = ir.FunctionType(self.tipo_vacio, [self.tipo_cadena])
+        self._print_string = ir.Function(self.llvm_module, tipo_funcion_cadena, name='_print_string')
 
-        # Declarar pow() para exponenciación de floats
+        # Registrar pow() para operaciones de exponenciación con flotantes
         # double @llvm.pow.f64(double, double)
-        pow_type = ir.FunctionType(self.float_type, [self.float_type, self.float_type])
-        self._pow_float = ir.Function(self.module, pow_type, name='llvm.pow.f64')
+        tipo_funcion_potencia = ir.FunctionType(self.tipo_flotante, [self.tipo_flotante, self.tipo_flotante])
+        self._pow_float = ir.Function(self.llvm_module, tipo_funcion_potencia, name='llvm.pow.f64')
 
     # =====================================================================
     # Utilidades de Conversión de Tipos
     # =====================================================================
 
-    def _get_llvm_type(self, bminor_type):
-        """Convierte un tipo de B-Minor a tipo LLVM"""
-        if isinstance(bminor_type, str):
-            return self.typemap.get(bminor_type)
-        elif isinstance(bminor_type, ArrayType):
-            # Arrays se representan como punteros al tipo de elemento
-            element_type = self._get_llvm_type(bminor_type.element_type.name)
-            return element_type.as_pointer()
+    def _convertir_tipo_llvm(self, tipo_bminor):
+        """Transforma un tipo de B-Minor a su equivalente LLVM"""
+        if isinstance(tipo_bminor, str):
+            return self.mapeo_tipos.get(tipo_bminor)
+        elif isinstance(tipo_bminor, ArrayType):
+            # Los arreglos se manejan como punteros al tipo base
+            tipo_elemento = self._convertir_tipo_llvm(tipo_bminor.element_type.name)
+            return tipo_elemento.as_pointer()
         return None
 
-    def _push_scope(self):
-        """Guarda el scope actual de variables (para bloques anidados)"""
-        # Crear una copia del diccionario actual
-        return dict(self.vars)
+    def _guardar_alcance(self):
+        """Preserva el alcance actual de variables (útil para bloques anidados)"""
+        # Generar una copia del diccionario de variables
+        return dict(self.variables)
 
-    def _pop_scope(self, saved_vars):
-        """Restaura el scope anterior"""
-        self.vars = saved_vars
+    def _restaurar_alcance(self, variables_guardadas):
+        """Recupera el alcance previo de variables"""
+        self.variables = variables_guardadas
 
     # =====================================================================
     # Nodos de Programa y Bloques
@@ -112,7 +112,7 @@ class LLVMCodeGenerator(Visitor):
         # FASE 1: Declarar todas las funciones (forward declarations)
         for stmt in n.body:
             if isinstance(stmt, FuncDecl):
-                self._declare_function(stmt)
+                self._declarar_funcion(stmt)
         
         # FASE 2: Definir funciones con cuerpo
         for stmt in n.body:
@@ -122,48 +122,48 @@ class LLVMCodeGenerator(Visitor):
             else:
                 pass
 
-    def _declare_function(self, n: FuncDecl):
+    def _declarar_funcion(self, n: FuncDecl):
         """Declara una función (prototipo) sin definir su cuerpo"""
         func_name = n.name
         
         # Obtener tipo de retorno
-        return_type = self._get_llvm_type(n.sym_type)
+        return_type = self._convertir_tipo_llvm(n.sym_type)
         
         # Obtener tipos de parámetros
         param_types = []
         for param in n.params:
             if isinstance(param.type, SimpleType):
-                param_types.append(self._get_llvm_type(param.type.name))
+                param_types.append(self._convertir_tipo_llvm(param.type.name))
             elif isinstance(param.type, ArrayType):
                 # Arrays como parámetros son punteros
-                elem_type = self._get_llvm_type(param.type.element_type.name)
+                elem_type = self._convertir_tipo_llvm(param.type.element_type.name)
                 param_types.append(elem_type.as_pointer())
         
         # Crear tipo de función
         func_type = ir.FunctionType(return_type, param_types)
         
         # Crear función en el módulo
-        func = ir.Function(self.module, func_type, name=func_name)
+        func = ir.Function(self.llvm_module, func_type, name=func_name)
         
         # Nombrar los argumentos
         for i, param in enumerate(n.params):
             func.args[i].name = param.name
         
         # Guardar en tabla de funciones
-        self.functions[func_name] = func
+        self.funciones_llvm[func_name] = func
 
     def visit(self, n: BlockStmt):
         '''
         Visita una secuencia de sentencias dentro de un bloque.
         '''
         # Guardar scope actual
-        saved_vars = self._push_scope()
+        variables_guardadas = self._guardar_alcance()
         
         for stmt in n.statements:
             self.visit(stmt)
         
         # Restaurar scope
-        self._pop_scope(saved_vars)
+        self._restaurar_alcance(variables_guardadas)
 
     # =====================================================================
     # Nodos de Declaraciones
@@ -177,35 +177,35 @@ class LLVMCodeGenerator(Visitor):
         
         # Usar el tipo anotado por el 'checker'
         var_type_bminor = n.sym_type 
-        var_type_llvm = self.typemap[var_type_bminor]
+        var_type_llvm = self.mapeo_tipos[var_type_bminor]
 
         # --- Patrón 'alloca' ---
         # 1. Reservar espacio en el stack (alloca)
         #    'goto_entry_block' se encarga automáticamente de 
         #    posicionar el 'alloca' en el bloque de entrada.   
-        with self.builder.goto_entry_block():
-            var_ptr = self.builder.alloca(var_type_llvm, name=var_name)
+        with self.constructor_ir.goto_entry_block():
+            var_ptr = self.constructor_ir.alloca(var_type_llvm, name=var_name)
         
         # 2. Guardar el puntero en nuestra tabla de símbolos de LLVM
-        self.vars[var_name] = var_ptr
+        self.variables[var_name] = var_ptr
 
         # 3. Si hay un valor inicial, generar 'store'
         if n.value:
             init_val = self.visit(n.value)
-            self.builder.store(init_val, var_ptr)
+            self.constructor_ir.store(init_val, var_ptr)
         else:
             # Inicializar con valor por defecto (0, 0.0, false)
             if var_type_bminor == 'integer':
-                default_val = ir.Constant(self.int_type, 0)
+                default_val = ir.Constant(self.tipo_entero, 0)
             elif var_type_bminor == 'float':
-                default_val = ir.Constant(self.float_type, 0.0)
+                default_val = ir.Constant(self.tipo_flotante, 0.0)
             elif var_type_bminor == 'boolean':
-                default_val = ir.Constant(self.bool_type, 0)
+                default_val = ir.Constant(self.tipo_booleano, 0)
             elif var_type_bminor == 'char':
-                default_val = ir.Constant(self.char_type, 0)
+                default_val = ir.Constant(self.tipo_caracter, 0)
             else:
                 default_val = ir.Constant(var_type_llvm, 0)
-            self.builder.store(default_val, var_ptr)
+            self.constructor_ir.store(default_val, var_ptr)
 
     def visit(self, n: ArrayDecl):
         '''
@@ -215,53 +215,53 @@ class LLVMCodeGenerator(Visitor):
         var_name = n.name
         
         # Obtener tipo de elemento
-        element_type_llvm = self._get_llvm_type(n.type.element_type.name)
+        element_type_llvm = self._convertir_tipo_llvm(n.type.element_type.name)
         
         # Evaluar el tamaño (puede ser una expresión)
         if n.type.size:
             size_val = self.visit(n.type.size)
             # Asegurar que es i64
-            if size_val.type != self.int_type:
-                size_val = self.builder.sext(size_val, self.int_type)
+            if size_val.type != self.tipo_entero:
+                size_val = self.constructor_ir.sext(size_val, self.tipo_entero)
         else:
             # Si no tiene tamaño, es un error (ya debería haber sido detectado por checker)
-            size_val = ir.Constant(self.int_type, 0)
+            size_val = ir.Constant(self.tipo_entero, 0)
         
         # Allocar array en el stack
-        with self.builder.goto_entry_block():
-            array_ptr = self.builder.alloca(element_type_llvm, size_val, name=var_name)
+        with self.constructor_ir.goto_entry_block():
+            array_ptr = self.constructor_ir.alloca(element_type_llvm, size_val, name=var_name)
         
         # Guardar puntero
-        self.vars[var_name] = array_ptr
+        self.variables[var_name] = array_ptr
         
         # Inicializar si hay valores
         if n.value:
             for i, val_node in enumerate(n.value):
                 val = self.visit(val_node)
                 # Calcular puntero al elemento
-                idx = ir.Constant(self.int_type, i)
-                elem_ptr = self.builder.gep(array_ptr, [idx], inbounds=True)
-                self.builder.store(val, elem_ptr)
+                idx = ir.Constant(self.tipo_entero, i)
+                elem_ptr = self.constructor_ir.gep(array_ptr, [idx], inbounds=True)
+                self.constructor_ir.store(val, elem_ptr)
 
     def visit(self, n: FuncDecl):
         '''
         Define una función (genera su cuerpo).
         '''
         func_name = n.name
-        func = self.functions[func_name]
+        func = self.funciones_llvm[func_name]
         
         # Guardar contexto anterior
-        old_function = self.current_function
-        old_builder = self.builder
-        old_vars = self.vars
+        funcion_anterior = self.funcion_actual
+        constructor_anterior = self.constructor_ir
+        variables_anteriores = self.variables
         
         # Nuevo contexto
-        self.current_function = func
-        self.vars = {}
+        self.funcion_actual = func
+        self.variables = {}
         
         # Crear bloque de entrada
         entry_block = func.append_basic_block('entry')
-        self.builder = ir.IRBuilder(entry_block)
+        self.constructor_ir = ir.IRBuilder(entry_block)
         
         # Crear allocas para los parámetros y copiar valores
         for i, param in enumerate(n.params):
@@ -269,43 +269,43 @@ class LLVMCodeGenerator(Visitor):
             
             # Determinar tipo del parámetro
             if isinstance(param.type, SimpleType):
-                param_type = self._get_llvm_type(param.type.name)
+                param_type = self._convertir_tipo_llvm(param.type.name)
             elif isinstance(param.type, ArrayType):
                 # Arrays como parámetros son punteros
-                elem_type = self._get_llvm_type(param.type.element_type.name)
+                elem_type = self._convertir_tipo_llvm(param.type.element_type.name)
                 param_type = elem_type.as_pointer()
             
             # Crear alloca
-            param_ptr = self.builder.alloca(param_type, name=param_name)
-            self.vars[param_name] = param_ptr
+            param_ptr = self.constructor_ir.alloca(param_type, name=param_name)
+            self.variables[param_name] = param_ptr
             
             # Copiar argumento al alloca
-            self.builder.store(func.args[i], param_ptr)
+            self.constructor_ir.store(func.args[i], param_ptr)
         
         # Generar cuerpo de la función
         if n.body:
             self.visit(n.body)
         
         # Asegurar que la función termina con return
-        if not self.builder.block.is_terminated:
+        if not self.constructor_ir.block.is_terminated:
             if n.sym_type == 'void':
-                self.builder.ret_void()
+                self.constructor_ir.ret_void()
             else:
                 # Retornar valor por defecto
-                return_type = self._get_llvm_type(n.sym_type)
+                return_type = self._convertir_tipo_llvm(n.sym_type)
                 if n.sym_type == 'integer':
-                    self.builder.ret(ir.Constant(return_type, 0))
+                    self.constructor_ir.ret(ir.Constant(return_type, 0))
                 elif n.sym_type == 'float':
-                    self.builder.ret(ir.Constant(return_type, 0.0))
+                    self.constructor_ir.ret(ir.Constant(return_type, 0.0))
                 elif n.sym_type == 'boolean':
-                    self.builder.ret(ir.Constant(return_type, 0))
+                    self.constructor_ir.ret(ir.Constant(return_type, 0))
                 elif n.sym_type == 'char':
-                    self.builder.ret(ir.Constant(return_type, 0))
+                    self.constructor_ir.ret(ir.Constant(return_type, 0))
         
         # Restaurar contexto
-        self.current_function = old_function
-        self.builder = old_builder
-        self.vars = old_vars
+        self.funcion_actual = funcion_anterior
+        self.constructor_ir = constructor_anterior
+        self.variables = variables_anteriores
 
     # =====================================================================
     # Nodos de Sentencias
@@ -322,15 +322,15 @@ class LLVMCodeGenerator(Visitor):
         # Para VarLocation
         if isinstance(n.location, VarLocation):
             var_name = n.location.name
-            var_ptr = self.vars[var_name]
-            self.builder.store(value_llvm, var_ptr)
+            var_ptr = self.variables[var_name]
+            self.constructor_ir.store(value_llvm, var_ptr)
         
         # Para ArraySubscript
         elif isinstance(n.location, ArraySubscript):
             # Obtener puntero base del array
             base_location = n.location.location
             if isinstance(base_location, VarLocation):
-                array_ptr = self.vars[base_location.name]
+                array_ptr = self.variables[base_location.name]
             else:
                 # Arrays anidados: visitar recursivamente
                 array_ptr = self.visit(base_location)
@@ -339,8 +339,8 @@ class LLVMCodeGenerator(Visitor):
             index_val = self.visit(n.location.index)
             
             # GEP para obtener puntero al elemento
-            elem_ptr = self.builder.gep(array_ptr, [index_val], inbounds=True)
-            self.builder.store(value_llvm, elem_ptr)
+            elem_ptr = self.constructor_ir.gep(array_ptr, [index_val], inbounds=True)
+            self.constructor_ir.store(value_llvm, elem_ptr)
 
     def visit(self, n: PrintStmt):
         '''
@@ -356,15 +356,15 @@ class LLVMCodeGenerator(Visitor):
 
             # Llama a la función de runtime correcta
             if node_type == 'integer':
-                self.builder.call(self._print_integer, [value_llvm])
+                self.constructor_ir.call(self._print_integer, [value_llvm])
             elif node_type == 'float':
-                self.builder.call(self._print_float, [value_llvm])
+                self.constructor_ir.call(self._print_float, [value_llvm])
             elif node_type == 'boolean':
-                self.builder.call(self._print_boolean, [value_llvm])
+                self.constructor_ir.call(self._print_boolean, [value_llvm])
             elif node_type == 'char':
-                self.builder.call(self._print_char, [value_llvm])
+                self.constructor_ir.call(self._print_char, [value_llvm])
             elif node_type == 'string':
-                self.builder.call(self._print_string, [value_llvm])
+                self.constructor_ir.call(self._print_string, [value_llvm])
 
     def visit(self, n: ReturnStmt):
         '''
@@ -373,10 +373,10 @@ class LLVMCodeGenerator(Visitor):
         if n.value:
             # Return con valor
             return_val = self.visit(n.value)
-            self.builder.ret(return_val)
+            self.constructor_ir.ret(return_val)
         else:
             # Return void
-            self.builder.ret_void()
+            self.constructor_ir.ret_void()
 
     def visit(self, n: IfStmt):
         '''
@@ -397,30 +397,30 @@ class LLVMCodeGenerator(Visitor):
         cond_val = self.visit(n.condition)
         
         # Crear bloques
-        then_block = self.current_function.append_basic_block('if.then')
-        merge_block = self.current_function.append_basic_block('if.end')
+        then_block = self.funcion_actual.append_basic_block('if.then')
+        merge_block = self.funcion_actual.append_basic_block('if.end')
         
         if n.false_body:
-            else_block = self.current_function.append_basic_block('if.else')
-            self.builder.cbranch(cond_val, then_block, else_block)
+            else_block = self.funcion_actual.append_basic_block('if.else')
+            self.constructor_ir.cbranch(cond_val, then_block, else_block)
         else:
-            self.builder.cbranch(cond_val, then_block, merge_block)
+            self.constructor_ir.cbranch(cond_val, then_block, merge_block)
         
         # Generar bloque then
-        self.builder.position_at_end(then_block)
+        self.constructor_ir.position_at_end(then_block)
         self.visit(n.true_body)
-        if not self.builder.block.is_terminated:
-            self.builder.branch(merge_block)
+        if not self.constructor_ir.block.is_terminated:
+            self.constructor_ir.branch(merge_block)
         
         # Generar bloque else (si existe)
         if n.false_body:
-            self.builder.position_at_end(else_block)
+            self.constructor_ir.position_at_end(else_block)
             self.visit(n.false_body)
-            if not self.builder.block.is_terminated:
-                self.builder.branch(merge_block)
+            if not self.constructor_ir.block.is_terminated:
+                self.constructor_ir.branch(merge_block)
         
         # Continuar en merge_block
-        self.builder.position_at_end(merge_block)
+        self.constructor_ir.position_at_end(merge_block)
 
     def visit(self, n: WhileStmt):
         '''
@@ -437,26 +437,26 @@ class LLVMCodeGenerator(Visitor):
         end_block:
             ...
         '''
-        cond_block = self.current_function.append_basic_block('while.cond')
-        body_block = self.current_function.append_basic_block('while.body')
-        end_block = self.current_function.append_basic_block('while.end')
+        cond_block = self.funcion_actual.append_basic_block('while.cond')
+        body_block = self.funcion_actual.append_basic_block('while.body')
+        end_block = self.funcion_actual.append_basic_block('while.end')
         
         # Saltar a evaluar condición
-        self.builder.branch(cond_block)
+        self.constructor_ir.branch(cond_block)
         
         # Generar bloque de condición
-        self.builder.position_at_end(cond_block)
+        self.constructor_ir.position_at_end(cond_block)
         cond_val = self.visit(n.condition)
-        self.builder.cbranch(cond_val, body_block, end_block)
+        self.constructor_ir.cbranch(cond_val, body_block, end_block)
         
         # Generar cuerpo
-        self.builder.position_at_end(body_block)
+        self.constructor_ir.position_at_end(body_block)
         self.visit(n.body)
-        if not self.builder.block.is_terminated:
-            self.builder.branch(cond_block)
+        if not self.constructor_ir.block.is_terminated:
+            self.constructor_ir.branch(cond_block)
         
         # Continuar después del while
-        self.builder.position_at_end(end_block)
+        self.constructor_ir.position_at_end(end_block)
 
     def visit(self, n: DoWhileStmt):
         '''
@@ -473,26 +473,26 @@ class LLVMCodeGenerator(Visitor):
         end_block:
             ...
         '''
-        body_block = self.current_function.append_basic_block('do.body')
-        cond_block = self.current_function.append_basic_block('do.cond')
-        end_block = self.current_function.append_basic_block('do.end')
+        body_block = self.funcion_actual.append_basic_block('do.body')
+        cond_block = self.funcion_actual.append_basic_block('do.cond')
+        end_block = self.funcion_actual.append_basic_block('do.end')
         
         # Saltar al cuerpo
-        self.builder.branch(body_block)
+        self.constructor_ir.branch(body_block)
         
         # Generar cuerpo
-        self.builder.position_at_end(body_block)
+        self.constructor_ir.position_at_end(body_block)
         self.visit(n.body)
-        if not self.builder.block.is_terminated:
-            self.builder.branch(cond_block)
+        if not self.constructor_ir.block.is_terminated:
+            self.constructor_ir.branch(cond_block)
         
         # Generar bloque de condición
-        self.builder.position_at_end(cond_block)
+        self.constructor_ir.position_at_end(cond_block)
         cond_val = self.visit(n.condition)
-        self.builder.cbranch(cond_val, body_block, end_block)
+        self.constructor_ir.cbranch(cond_val, body_block, end_block)
         
         # Continuar después del do-while
-        self.builder.position_at_end(end_block)
+        self.constructor_ir.position_at_end(end_block)
 
     def visit(self, n: ForStmt):
         '''
@@ -519,37 +519,37 @@ class LLVMCodeGenerator(Visitor):
         if n.init:
             self.visit(n.init)
         
-        cond_block = self.current_function.append_basic_block('for.cond')
-        body_block = self.current_function.append_basic_block('for.body')
-        update_block = self.current_function.append_basic_block('for.update')
-        end_block = self.current_function.append_basic_block('for.end')
+        cond_block = self.funcion_actual.append_basic_block('for.cond')
+        body_block = self.funcion_actual.append_basic_block('for.body')
+        update_block = self.funcion_actual.append_basic_block('for.update')
+        end_block = self.funcion_actual.append_basic_block('for.end')
         
         # Saltar a condición
-        self.builder.branch(cond_block)
+        self.constructor_ir.branch(cond_block)
         
         # Generar bloque de condición
-        self.builder.position_at_end(cond_block)
+        self.constructor_ir.position_at_end(cond_block)
         if n.condition:
             cond_val = self.visit(n.condition)
-            self.builder.cbranch(cond_val, body_block, end_block)
+            self.constructor_ir.cbranch(cond_val, body_block, end_block)
         else:
             # Sin condición = bucle infinito
-            self.builder.branch(body_block)
+            self.constructor_ir.branch(body_block)
         
         # Generar cuerpo
-        self.builder.position_at_end(body_block)
+        self.constructor_ir.position_at_end(body_block)
         self.visit(n.body)
-        if not self.builder.block.is_terminated:
-            self.builder.branch(update_block)
+        if not self.constructor_ir.block.is_terminated:
+            self.constructor_ir.branch(update_block)
         
         # Generar actualización
-        self.builder.position_at_end(update_block)
+        self.constructor_ir.position_at_end(update_block)
         if n.update:
             self.visit(n.update)
-        self.builder.branch(cond_block)
+        self.constructor_ir.branch(cond_block)
         
         # Continuar después del for
-        self.builder.position_at_end(end_block)
+        self.constructor_ir.position_at_end(end_block)
 
     # =====================================================================
     # Nodos de Expresiones - Literales
@@ -557,19 +557,19 @@ class LLVMCodeGenerator(Visitor):
 
     def visit(self, n: Integer):
         '''Genera un literal de entero constante (i64)'''
-        return ir.Constant(self.int_type, n.value)
+        return ir.Constant(self.tipo_entero, n.value)
 
     def visit(self, n: Float):
         '''Genera un literal de float constante (double)'''
-        return ir.Constant(self.float_type, n.value)
+        return ir.Constant(self.tipo_flotante, n.value)
 
     def visit(self, n: Boolean):
         '''Genera un literal de booleano constante (i1)'''
-        return ir.Constant(self.bool_type, int(n.value))
+        return ir.Constant(self.tipo_booleano, int(n.value))
 
     def visit(self, n: Char):
         '''Genera un literal de char constante (i8)'''
-        return ir.Constant(self.char_type, ord(n.value))
+        return ir.Constant(self.tipo_caracter, ord(n.value))
 
     def visit(self, n: String):
         '''
@@ -581,20 +581,20 @@ class LLVMCodeGenerator(Visitor):
         string_len = len(string_bytes)
         
         # Tipo del array
-        string_array_type = ir.ArrayType(self.char_type, string_len)
+        string_array_type = ir.ArrayType(self.tipo_caracter, string_len)
         
         # Crear variable global
-        string_name = f'.str.{self.string_counter}'
-        self.string_counter += 1
+        string_name = f'.str.{self.contador_cadenas}'
+        self.contador_cadenas += 1
         
-        global_string = ir.GlobalVariable(self.module, string_array_type, name=string_name)
+        global_string = ir.GlobalVariable(self.llvm_module, string_array_type, name=string_name)
         global_string.linkage = 'internal'
         global_string.global_constant = True
         global_string.initializer = ir.Constant(string_array_type, string_bytes)
         
         # Obtener puntero al primer elemento (i8*)
-        zero = ir.Constant(self.int_type, 0)
-        string_ptr = self.builder.gep(global_string, [zero, zero], inbounds=True)
+        zero = ir.Constant(self.tipo_entero, 0)
+        string_ptr = self.constructor_ir.gep(global_string, [zero, zero], inbounds=True)
         
         return string_ptr
 
@@ -609,7 +609,7 @@ class LLVMCodeGenerator(Visitor):
         si es un tipo simple, carga el valor.
         '''
         var_name = n.name
-        var_ptr = self.vars[var_name] 
+        var_ptr = self.variables[var_name] 
 
         # El checker (checker.py) anotó el nodo con su tipo B-Minor.
         # n.type será 'integer', 'float', o una instancia de ArrayType.
@@ -625,10 +625,10 @@ class LLVMCodeGenerator(Visitor):
             # Caso 2: Array como parámetro (e.g. arr: array[] integer)
             # var_ptr es i64** (puntero a un puntero)
             elif isinstance(var_ptr.type.pointee, ir.PointerType):
-                return self.builder.load(var_ptr, name=f"{var_name}_ptr") # Carga para obtener i64*
+                return self.constructor_ir.load(var_ptr, name=f"{var_name}_ptr") # Carga para obtener i64*
 
         # Si no es un array, es un tipo simple. Cargar el valor.
-        return self.builder.load(var_ptr, name=var_name + "_val")
+        return self.constructor_ir.load(var_ptr, name=var_name + "_val")
 
     def visit(self, n: ArraySubscript):
         '''
@@ -638,22 +638,22 @@ class LLVMCodeGenerator(Visitor):
         # Obtener puntero base del array
         base_location = n.location
         if isinstance(base_location, VarLocation):
-            array_ptr_or_ptr_ptr = self.vars[base_location.name]
+            array_ptr_or_ptr_ptr = self.variables[base_location.name]
         else:
             array_ptr_or_ptr_ptr = self.visit(base_location)
             
         array_ptr = array_ptr_or_ptr_ptr
         if isinstance(array_ptr.type.pointee, ir.PointerType):
-            array_ptr = self.builder.load(array_ptr, name="array_ptr")
+            array_ptr = self.constructor_ir.load(array_ptr, name="array_ptr")
             
         # Obtener índice
         index_val = self.visit(n.index)
         
         # GEP para obtener puntero al elemento
-        elem_ptr = self.builder.gep(array_ptr, [index_val], inbounds=True)
+        elem_ptr = self.constructor_ir.gep(array_ptr, [index_val], inbounds=True)
         
         # Cargar valor
-        return self.builder.load(elem_ptr, name='array_elem')
+        return self.constructor_ir.load(elem_ptr, name='array_elem')
 
     def visit(self, n: FuncCall):
         '''
@@ -662,10 +662,10 @@ class LLVMCodeGenerator(Visitor):
         func_name = n.name
         
         # Obtener función
-        if func_name not in self.functions:
+        if func_name not in self.funciones_llvm:
             raise RuntimeError(f"Función '{func_name}' no declarada")
         
-        func = self.functions[func_name]
+        func = self.funciones_llvm[func_name]
         
         # Evaluar argumentos
         args = []
@@ -674,7 +674,7 @@ class LLVMCodeGenerator(Visitor):
             args.append(arg_val)
         
         # Llamar función
-        return self.builder.call(func, args, name=f'call_{func_name}')
+        return self.constructor_ir.call(func, args, name=f'call_{func_name}')
 
     # =====================================================================
     # Nodos de Expresiones - Operaciones Binarias
@@ -698,91 +698,91 @@ class LLVMCodeGenerator(Visitor):
         if op_type == 'integer':
             # Operaciones aritméticas de enteros
             if op == '+':
-                return self.builder.add(left_val, right_val, name='add')
+                return self.constructor_ir.add(left_val, right_val, name='add')
             elif op == '-':
-                return self.builder.sub(left_val, right_val, name='sub')
+                return self.constructor_ir.sub(left_val, right_val, name='sub')
             elif op == '*':
-                return self.builder.mul(left_val, right_val, name='mul')
+                return self.constructor_ir.mul(left_val, right_val, name='mul')
             elif op == '/':
-                return self.builder.sdiv(left_val, right_val, name='div')
+                return self.constructor_ir.sdiv(left_val, right_val, name='div')
             elif op == '%':
-                return self.builder.srem(left_val, right_val, name='mod')
+                return self.constructor_ir.srem(left_val, right_val, name='mod')
             elif op == '^':
                 # Exponenciación para enteros: convertir a float, pow, convertir de vuelta
-                left_float = self.builder.sitofp(left_val, self.float_type)
-                right_float = self.builder.sitofp(right_val, self.float_type)
-                result_float = self.builder.call(self._pow_float, [left_float, right_float])
-                return self.builder.fptosi(result_float, self.int_type, name='pow')
+                left_float = self.constructor_ir.sitofp(left_val, self.tipo_flotante)
+                right_float = self.constructor_ir.sitofp(right_val, self.tipo_flotante)
+                result_float = self.constructor_ir.call(self._pow_float, [left_float, right_float])
+                return self.constructor_ir.fptosi(result_float, self.tipo_entero, name='pow')
             
             # Comparaciones de enteros (retornan i1)
             elif op == '<':
-                return self.builder.icmp_signed('<', left_val, right_val, name='lt')
+                return self.constructor_ir.icmp_signed('<', left_val, right_val, name='lt')
             elif op == '<=':
-                return self.builder.icmp_signed('<=', left_val, right_val, name='le')
+                return self.constructor_ir.icmp_signed('<=', left_val, right_val, name='le')
             elif op == '>':
-                return self.builder.icmp_signed('>', left_val, right_val, name='gt')
+                return self.constructor_ir.icmp_signed('>', left_val, right_val, name='gt')
             elif op == '>=':
-                return self.builder.icmp_signed('>=', left_val, right_val, name='ge')
+                return self.constructor_ir.icmp_signed('>=', left_val, right_val, name='ge')
             elif op == '==':
-                return self.builder.icmp_signed('==', left_val, right_val, name='eq')
+                return self.constructor_ir.icmp_signed('==', left_val, right_val, name='eq')
             elif op == '!=':
-                return self.builder.icmp_signed('!=', left_val, right_val, name='ne')
+                return self.constructor_ir.icmp_signed('!=', left_val, right_val, name='ne')
         
         elif op_type == 'float':
             # Operaciones aritméticas de floats
             if op == '+':
-                return self.builder.fadd(left_val, right_val, name='fadd')
+                return self.constructor_ir.fadd(left_val, right_val, name='fadd')
             elif op == '-':
-                return self.builder.fsub(left_val, right_val, name='fsub')
+                return self.constructor_ir.fsub(left_val, right_val, name='fsub')
             elif op == '*':
-                return self.builder.fmul(left_val, right_val, name='fmul')
+                return self.constructor_ir.fmul(left_val, right_val, name='fmul')
             elif op == '/':
-                return self.builder.fdiv(left_val, right_val, name='fdiv')
+                return self.constructor_ir.fdiv(left_val, right_val, name='fdiv')
             elif op == '%':
-                return self.builder.frem(left_val, right_val, name='fmod')
+                return self.constructor_ir.frem(left_val, right_val, name='fmod')
             elif op == '^':
                 # Exponenciación de floats
-                return self.builder.call(self._pow_float, [left_val, right_val], name='fpow')
+                return self.constructor_ir.call(self._pow_float, [left_val, right_val], name='fpow')
             
             # Comparaciones de floats (retornan i1)
             elif op == '<':
-                return self.builder.fcmp_ordered('<', left_val, right_val, name='flt')
+                return self.constructor_ir.fcmp_ordered('<', left_val, right_val, name='flt')
             elif op == '<=':
-                return self.builder.fcmp_ordered('<=', left_val, right_val, name='fle')
+                return self.constructor_ir.fcmp_ordered('<=', left_val, right_val, name='fle')
             elif op == '>':
-                return self.builder.fcmp_ordered('>', left_val, right_val, name='fgt')
+                return self.constructor_ir.fcmp_ordered('>', left_val, right_val, name='fgt')
             elif op == '>=':
-                return self.builder.fcmp_ordered('>=', left_val, right_val, name='fge')
+                return self.constructor_ir.fcmp_ordered('>=', left_val, right_val, name='fge')
             elif op == '==':
-                return self.builder.fcmp_ordered('==', left_val, right_val, name='feq')
+                return self.constructor_ir.fcmp_ordered('==', left_val, right_val, name='feq')
             elif op == '!=':
-                return self.builder.fcmp_ordered('!=', left_val, right_val, name='fne')
+                return self.constructor_ir.fcmp_ordered('!=', left_val, right_val, name='fne')
         
         elif op_type == 'boolean':
             # Operaciones lógicas
             if op == '&&':
-                return self.builder.and_(left_val, right_val, name='and')
+                return self.constructor_ir.and_(left_val, right_val, name='and')
             elif op == '||':
-                return self.builder.or_(left_val, right_val, name='or')
+                return self.constructor_ir.or_(left_val, right_val, name='or')
             elif op == '==':
-                return self.builder.icmp_signed('==', left_val, right_val, name='beq')
+                return self.constructor_ir.icmp_signed('==', left_val, right_val, name='beq')
             elif op == '!=':
-                return self.builder.icmp_signed('!=', left_val, right_val, name='bne')
+                return self.constructor_ir.icmp_signed('!=', left_val, right_val, name='bne')
         
         elif op_type == 'char':
             # Comparaciones de caracteres
             if op == '<':
-                return self.builder.icmp_unsigned('<', left_val, right_val, name='clt')
+                return self.constructor_ir.icmp_unsigned('<', left_val, right_val, name='clt')
             elif op == '<=':
-                return self.builder.icmp_unsigned('<=', left_val, right_val, name='cle')
+                return self.constructor_ir.icmp_unsigned('<=', left_val, right_val, name='cle')
             elif op == '>':
-                return self.builder.icmp_unsigned('>', left_val, right_val, name='cgt')
+                return self.constructor_ir.icmp_unsigned('>', left_val, right_val, name='cgt')
             elif op == '>=':
-                return self.builder.icmp_unsigned('>=', left_val, right_val, name='cge')
+                return self.constructor_ir.icmp_unsigned('>=', left_val, right_val, name='cge')
             elif op == '==':
-                return self.builder.icmp_unsigned('==', left_val, right_val, name='ceq')
+                return self.constructor_ir.icmp_unsigned('==', left_val, right_val, name='ceq')
             elif op == '!=':
-                return self.builder.icmp_unsigned('!=', left_val, right_val, name='cne')
+                return self.constructor_ir.icmp_unsigned('!=', left_val, right_val, name='cne')
         
         elif op_type == 'string':
             # Concatenación de strings (requiere función de runtime)
@@ -808,10 +808,10 @@ class LLVMCodeGenerator(Visitor):
         if n.op == '-':
             # Negación aritmética
             if operand_type == 'integer':
-                zero = ir.Constant(self.int_type, 0)
-                return self.builder.sub(zero, operand_val, name='neg')
+                zero = ir.Constant(self.tipo_entero, 0)
+                return self.constructor_ir.sub(zero, operand_val, name='neg')
             elif operand_type == 'float':
-                return self.builder.fneg(operand_val, name='fneg')
+                return self.constructor_ir.fneg(operand_val, name='fneg')
         
         elif n.op == '+':
             # Unario más (no hace nada)
@@ -820,7 +820,7 @@ class LLVMCodeGenerator(Visitor):
         elif n.op == '!':
             # Negación lógica (para boolean)
             if operand_type == 'boolean':
-                return self.builder.not_(operand_val, name='not')
+                return self.constructor_ir.not_(operand_val, name='not')
         
         # Si llegamos aquí, operación no soportada
         raise NotImplementedError(f"Operación unaria '{n.op}' no implementada para tipo '{operand_type}'")
@@ -852,44 +852,44 @@ class LLVMCodeGenerator(Visitor):
             raise NotImplementedError("++/-- solo soportado para variables simples")
         
         var_name = n.expr.name
-        var_ptr = self.vars[var_name]
+        var_ptr = self.variables[var_name]
         
         # Cargar valor actual
-        current_val = self.builder.load(var_ptr, name=f'{var_name}_val')
+        current_val = self.constructor_ir.load(var_ptr, name=f'{var_name}_val')
         
         # Calcular nuevo valor
         var_type = n.expr.type
         if var_type == 'integer':
-            one = ir.Constant(self.int_type, 1)
+            one = ir.Constant(self.tipo_entero, 1)
             if is_increment:
-                new_val = self.builder.add(current_val, one, name='inc')
+                new_val = self.constructor_ir.add(current_val, one, name='inc')
             else:
-                new_val = self.builder.sub(current_val, one, name='dec')
+                new_val = self.constructor_ir.sub(current_val, one, name='dec')
         elif var_type == 'float':
-            one = ir.Constant(self.float_type, 1.0)
+            one = ir.Constant(self.tipo_flotante, 1.0)
             if is_increment:
-                new_val = self.builder.fadd(current_val, one, name='finc')
+                new_val = self.constructor_ir.fadd(current_val, one, name='finc')
             else:
-                new_val = self.builder.fsub(current_val, one, name='fdec')
+                new_val = self.constructor_ir.fsub(current_val, one, name='fdec')
         else:
             raise NotImplementedError(f"++/-- no soportado para tipo '{var_type}'")
         
         # Almacenar nuevo valor
-        self.builder.store(new_val, var_ptr)
+        self.constructor_ir.store(new_val, var_ptr)
         
         # Retornar según pre/post
         return new_val if is_pre else current_val
     
-def generate_code(ast):
+def generate_code(arbol_sintaxis):
     '''
-    Genera código LLVM IR desde un AST de B-Minor.
+    Produce código intermedio LLVM a partir de un AST de B-Minor.
     
     Args:
-        ast: Nodo Program del AST (ya verificado por checker)
+        arbol_sintaxis: Nodo Program del AST (previamente validado por checker)
     
     Returns:
-        str: Código LLVM IR como string
+        str: Código LLVM IR en formato texto
     '''
-    generator = LLVMCodeGenerator()
-    generator.visit(ast)
-    return str(generator.module)
+    generador = IRGenerator()
+    generador.visit(arbol_sintaxis)
+    return str(generador.llvm_module)
