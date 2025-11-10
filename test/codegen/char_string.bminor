@@ -1,6 +1,6 @@
 main: function void() = {
-    ch: char = 'A';
-    s: string = "hello";
-    print ch;
-    print s;
+    letra: char = 'A';
+    mensaje: string = "hello";
+    print letra;
+    print mensaje;
 }

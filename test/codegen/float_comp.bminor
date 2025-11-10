@@ -1,8 +1,8 @@
 main: function void() = {
-    a: float = 2.5;
-    b: float = 1.2;
-    c: boolean = a > b;
-    print c;
-    print a;
-    print b;
+    numero_mayor: float = 2.5;
+    numero_menor: float = 1.2;
+    es_mayor: boolean = numero_mayor > numero_menor;
+    print es_mayor;
+    print numero_mayor;
+    print numero_menor;
 }

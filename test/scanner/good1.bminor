@@ -1,7 +1,7 @@
 // good1.bminor
-// Verificar la definicion de funciones y el reconocimiento de function, void y return
+// Validación de definición de funciones y reconocimiento de function, void y return
 
-mi_funcion: function void (a: integer, b: string) = {
-    print a, b;
+funcion_ejemplo: function void (parametro_entero: integer, parametro_cadena: string) = {
+    print parametro_entero, parametro_cadena;
     return;
 }

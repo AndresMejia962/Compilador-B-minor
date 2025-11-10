@@ -1,6 +1,6 @@
 main: function void() = {
-    flag: boolean = true;
-    if (flag) {
+    bandera_activada: boolean = true;
+    if (bandera_activada) {
         print 1;
     } else {
         print 0;

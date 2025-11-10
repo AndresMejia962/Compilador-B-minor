@@ -1,13 +1,13 @@
-/* Variable declarations */
-a: integer = 0;
-b: integer = 1;
-c: integer = -1;
-d: float = 45.67;
-e: boolean = false;
-f: char = 'q';
-g: string = "hello bminor\n";
-h: array [1] integer;
-i: array [2] boolean = {true, false};
-j: array [2] array [b] boolean;
-k: array [b] array [2] boolean;
-l: array [2] integer = {a, b};
+/* Declaraciones de variables */
+numero_cero: integer = 0;
+numero_uno: integer = 1;
+numero_negativo: integer = -1;
+valor_flotante: float = 45.67;
+condicion_falsa: boolean = false;
+caracter_prueba: char = 'q';
+mensaje_saludo: string = "hello bminor\n";
+arreglo_entero: array [1] integer;
+arreglo_booleano: array [2] boolean = {true, false};
+arreglo_anidado_1: array [2] array [numero_uno] boolean;
+arreglo_anidado_2: array [numero_uno] array [2] boolean;
+arreglo_inicializado: array [2] integer = {numero_cero, numero_uno};

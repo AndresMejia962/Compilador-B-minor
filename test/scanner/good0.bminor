@@ -1,8 +1,8 @@
 // good0.bminor
-// Verificar que todas las palabras de tipos de datos y las declaraciones se reconozcan correctamente
+// Validación de reconocimiento de tipos de datos y declaraciones
 
-a: integer = 10;
-b: float = 3.14;
-c: char = 'Z';
-d: string = "Hola, B-Minor!";
-e: boolean = true;
+variable_entera: integer = 10;
+variable_flotante: float = 3.14;
+variable_caracter: char = 'Z';
+variable_cadena: string = "Hola, B-Minor!";
+variable_booleana: boolean = true;

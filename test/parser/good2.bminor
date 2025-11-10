@@ -1,14 +1,14 @@
 // good2.bminor
-// prueba como interactua un for dentro de un while
+// Ejemplo de anidamiento: bucle for dentro de while
 
 main: function void () = {
-    i: integer = 0;
-    while (i < 3) {
-        j: integer;
-        for (j=0; j < 2; ++j) {
-            print "i=", i, ", j=", j;
+    contador_externo: integer = 0;
+    while (contador_externo < 3) {
+        contador_interno: integer;
+        for (contador_interno=0; contador_interno < 2; ++contador_interno) {
+            print "i=", contador_externo, ", j=", contador_interno;
         }
         
-        ++i;
+        ++contador_externo;
     }
 }

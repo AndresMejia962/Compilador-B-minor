@@ -1,9 +1,9 @@
-/* Function declarations */
-a: function void (arg1: integer, arg2: integer) = {
+/* Declaraciones de funciones */
+funcion_void: function void (primer_arg: integer, segundo_arg: integer) = {
     return;
 }
 
-b: function integer (arg1: array [2] integer) = {
-    a(arg1[0], arg1[1]);
-    return 1 + arg1[0];
+funcion_entera: function integer (arreglo_param: array [2] integer) = {
+    funcion_void(arreglo_param[0], arreglo_param[1]);
+    return 1 + arreglo_param[0];
 }

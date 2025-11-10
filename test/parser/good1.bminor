@@ -1,13 +1,13 @@
 //good1.bminor
-// Probar un bucle `do-while` simple con un operador de pre-incremento.
+// Ejemplo de bucle do-while con operador de pre-incremento
 
 main: function integer () = {
-    y: integer = 0;
+    contador_ascendente: integer = 0;
     
     do {
-        print "Contando hacia arriba: ", y;
-        ++y;
-    } while (y < 3);
+        print "Contando hacia arriba: ", contador_ascendente;
+        ++contador_ascendente;
+    } while (contador_ascendente < 3);
     
     return 0;
 }

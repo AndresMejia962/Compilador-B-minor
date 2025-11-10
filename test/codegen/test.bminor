@@ -1,94 +1,94 @@
- // Función factorial recursiva
-    factorial: function integer (n: integer) = {
-        if (n <= 1) {
+// Implementación recursiva de factorial
+    calcular_factorial: function integer (numero: integer) = {
+        if (numero <= 1) {
             return 1;
         } else {
-            return n * factorial(n - 1);
+            return numero * calcular_factorial(numero - 1);
         }
     }
     
-    // Función suma
-    suma: function integer (a: integer, b: integer) = {
-        return a + b;
+    // Función para sumar dos enteros
+    agregar_numeros: function integer (primer_num: integer, segundo_num: integer) = {
+        return primer_num + segundo_num;
     }
     
-    // Función que usa arrays
-    suma_array: function integer (arr: array [] integer, size: integer) = {
-        total: integer = 0;
-        i: integer;
-        for (i = 0; i < size; i++) {
-            total = total + arr[i];
+    // Función que procesa arrays
+    sumar_elementos: function integer (vector: array [] integer, longitud: integer) = {
+        acumulador: integer = 0;
+        indice: integer;
+        for (indice = 0; indice < longitud; indice++) {
+            acumulador = acumulador + vector[indice];
         }
-        return total;
+        return acumulador;
     }
     
-    // Función main
+    // Función principal del programa
     main: function integer () = {
-        // Prueba de variables
-        x: integer = 10;
-        y: integer = 20;
-        z: integer = suma(x, y);
+        // Declaración de variables de prueba
+        valor_x: integer = 10;
+        valor_y: integer = 20;
+        resultado_suma: integer = agregar_numeros(valor_x, valor_y);
         
-        print "suma(", x, ", ", y, ") = ", z;
+        print "suma(", valor_x, ", ", valor_y, ") = ", resultado_suma;
         
-        // Prueba de factorial
-        n: integer = 5;
-        fact: integer = factorial(n);
-        print "factorial(", n, ") = ", fact;
+        // Cálculo de factorial
+        entrada: integer = 5;
+        factorial_resultado: integer = calcular_factorial(entrada);
+        print "factorial(", entrada, ") = ", factorial_resultado;
         
-        // Prueba de arrays
-        numeros: array [5] integer = {1, 2, 3, 4, 5};
-        total: integer = suma_array(numeros, 5);
-        print "suma del array = ", total;
+        // Manipulación de arrays
+        lista_numeros: array [5] integer = {1, 2, 3, 4, 5};
+        suma_total: integer = sumar_elementos(lista_numeros, 5);
+        print "suma del array = ", suma_total;
         
-        // Prueba de if/else
-        if (x < y) {
-            print x, " es menor que ", y;
+        // Estructura condicional
+        if (valor_x < valor_y) {
+            print valor_x, " es menor que ", valor_y;
         } else {
-            print x, " es mayor o igual que ", y;
+            print valor_x, " es mayor o igual que ", valor_y;
         }
         
-        // Prueba de while
-        contador: integer = 0;
-        while (contador < 3) {
-            print "Iteracion: ", contador;
-            contador = contador + 1;
+        // Bucle while
+        contador_while: integer = 0;
+        while (contador_while < 3) {
+            print "Iteracion: ", contador_while;
+            contador_while = contador_while + 1;
         }
         
-        // Prueba de do-while
-        i: integer = 0;
+        // Bucle do-while
+        iterador: integer = 0;
         do {
-            print "Do-while: ", i;
-            i = i + 1;
-        } while (i < 2);
+            print "Do-while: ", iterador;
+            iterador = iterador + 1;
+        } while (iterador < 2);
         
-        // Prueba de for
-        j: integer;
-        for (j = 0; j < 3; j++) {
-            print "For: ", j;
+        // Bucle for
+        contador_for: integer;
+        for (contador_for = 0; contador_for < 3; contador_for++) {
+            print "For: ", contador_for;
         }
         
-        // Prueba de tipos
-        f: float = 3.14159;
-        b: boolean = true;
-        c: char = 'A';
-        s: string = "Hello, World!";
+        // Pruebas con diferentes tipos
+        numero_flotante: float = 3.14159;
+        valor_booleano: boolean = true;
+        caracter: char = 'A';
+        texto: string = "Hello, World!";
         
-        print "Float: ", f;
-        print "Boolean: ", b;
-        print "Char: ", c;
-        print "String: ", s;
+        print "Float: ", numero_flotante;
+        print "Boolean: ", valor_booleano;
+        print "Char: ", caracter;
+        print "String: ", texto;
         
-        // Prueba de operadores
-        resultado: integer = 2 ^ 10;
-        print "2^10 = ", resultado;
+        // Operaciones matemáticas
+        potencia_resultado: integer = 2 ^ 10;
+        print "2^10 = ", potencia_resultado;
         
-        // Prueba de incremento/decremento
-        val: integer = 5;
-        print "val = ", val;
-        print "++val = ", ++val;
-        print "val++ = ", val++;
-        print "val = ", val;
+        // Operadores de incremento
+        variable_prueba: integer = 5;
+        print "val = ", variable_prueba;
+        print "++val = ", ++variable_prueba;
+        print "val++ = ", variable_prueba++;
+        print "val = ", variable_prueba;
         
         return 0;
     }

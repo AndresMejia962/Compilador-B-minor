@@ -1,6 +1,6 @@
 main: function void() = {
-    a: integer = 10;
-    if (a > 5) {
+    valor_prueba: integer = 10;
+    if (valor_prueba > 5) {
         print 1;
     } else {
         print 0;

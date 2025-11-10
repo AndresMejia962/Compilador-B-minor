@@ -1,7 +1,7 @@
 main: function void() = {
-    i: integer = 0;
-    while (i < 3) {
-        print i;
-        i = i + 1;
+    contador: integer = 0;
+    while (contador < 3) {
+        print contador;
+        contador = contador + 1;
     }
 }
