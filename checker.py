@@ -46,6 +46,8 @@ class Check(Visitor):
             env.add(n.name, n)
         except Symtab.SymbolDefinedError:
             error(f"La Variable '{n.name}' ya ha sido definida en este alcance", n.lineno)
+        except Symtab.SymbolConflictError:
+            error(f"Conflicto de tipos: La Variable '{n.name}' ya existe con un tipo diferente", n.lineno)
 
     def visit(self, n: ArrayDecl, env: Symtab):
         # El tipo del array ya está en n.type (que es un ArrayType)

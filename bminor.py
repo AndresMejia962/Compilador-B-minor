@@ -56,7 +56,7 @@ def scan_file(filepath):
                 
         df = pd.DataFrame(table_data, columns=["TIPO", "VALOR", "LINEA", "COLUMNA"])
         df.index = range(1, len(df) + 1)
-        print(tabulate(df, headers='keys', tablefmt='fancy_grid', stralign='left', showindex="TOKEN #"))
+        print(tabulate(df, headers='keys', tablefmt='grid', stralign='left', showindex="TOKEN #"))
 
 def parse_file(filepath):
     """Realiza el análisis sintáctico de un archivo y muestra el AST."""

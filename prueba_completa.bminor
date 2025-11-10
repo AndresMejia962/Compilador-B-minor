@@ -1,0 +1,348 @@
+// ============================================================
+// ARCHIVO DE PRUEBA COMPLETO PARA EL COMPILADOR B-MINOR
+// Este archivo prueba todas las características del lenguaje
+// ============================================================
+
+// ============================================================
+// FUNCIONES MATEMÁTICAS
+// ============================================================
+
+// Función factorial recursiva
+factorial: function integer (n: integer) = {
+    if (n <= 1) {
+        return 1;
+    } else {
+        return n * factorial(n - 1);
+    }
+}
+
+// Función para calcular potencia
+potencia: function integer (base: integer, exp: integer) = {
+    resultado: integer = 1;
+    i: integer;
+    for (i = 0; i < exp; i++) {
+        resultado = resultado * base;
+    }
+    return resultado;
+}
+
+// Función para sumar dos números
+suma: function integer (a: integer, b: integer) = {
+    return a + b;
+}
+
+// Función para calcular máximo de dos números
+maximo: function integer (a: integer, b: integer) = {
+    if (a > b) {
+        return a;
+    } else {
+        return b;
+    }
+}
+
+// Función para verificar si un número es par
+es_par: function boolean (n: integer) = {
+    return (n % 2) == 0;
+}
+
+// Función para sumar elementos de un array
+suma_array: function integer (arr: array [] integer, size: integer) = {
+    total: integer = 0;
+    i: integer;
+    for (i = 0; i < size; i++) {
+        total = total + arr[i];
+    }
+    return total;
+}
+
+// Función para encontrar el máximo en un array
+maximo_array: function integer (arr: array [] integer, size: integer) = {
+    max: integer = arr[0];
+    i: integer;
+    for (i = 1; i < size; i++) {
+        if (arr[i] > max) {
+            max = arr[i];
+        }
+    }
+    return max;
+}
+
+// Función recursiva para calcular suma de dígitos
+suma_digitos: function integer (n: integer) = {
+    if (n == 0) {
+        return 0;
+    } else {
+        return (n % 10) + suma_digitos(n / 10);
+    }
+}
+
+// ============================================================
+// FUNCIÓN PRINCIPAL
+// ============================================================
+
+main: function integer () = {
+    print "==========================================";
+    print "PRUEBA COMPLETA DEL COMPILADOR B-MINOR";
+    print "==========================================";
+    print "";
+    
+    // ============================================================
+    // PRUEBA 1: Variables de diferentes tipos
+    // ============================================================
+    print "--- PRUEBA 1: Tipos de Datos ---";
+    
+    x: integer = 42;
+    y: integer = 10;
+    z: integer;
+    
+    pi: float = 3.14159;
+    e: float = 2.71828;
+    
+    verdadero: boolean = true;
+    falso: boolean = false;
+    
+    letra: char = 'A';
+    saludo: string = "Hola, B-Minor!";
+    
+    print "Entero x = ", x;
+    print "Float pi = ", pi;
+    print "Boolean verdadero = ", verdadero;
+    print "Char letra = ", letra;
+    print "String saludo = ", saludo;
+    print "";
+    
+    // ============================================================
+    // PRUEBA 2: Operadores Aritméticos
+    // ============================================================
+    print "--- PRUEBA 2: Operadores Aritméticos ---";
+    
+    resultado_suma: integer = x + y;
+    resultado_resta: integer = x - y;
+    resultado_mult: integer = x * y;
+    resultado_div: integer = x / y;
+    resultado_mod: integer = x % y;
+    resultado_pot: integer = x ^ 2;
+    
+    print x, " + ", y, " = ", resultado_suma;
+    print x, " - ", y, " = ", resultado_resta;
+    print x, " * ", y, " = ", resultado_mult;
+    print x, " / ", y, " = ", resultado_div;
+    print x, " % ", y, " = ", resultado_mod;
+    print x, " ^ 2 = ", resultado_pot;
+    print "";
+    
+    // ============================================================
+    // PRUEBA 3: Operadores de Comparación
+    // ============================================================
+    print "--- PRUEBA 3: Operadores de Comparación ---";
+    
+    print x, " < ", y, " = ", (x < y);
+    print x, " > ", y, " = ", (x > y);
+    print x, " <= ", y, " = ", (x <= y);
+    print x, " >= ", y, " = ", (x >= y);
+    print x, " == ", y, " = ", (x == y);
+    print x, " != ", y, " = ", (x != y);
+    print "";
+    
+    // ============================================================
+    // PRUEBA 4: Operadores Lógicos
+    // ============================================================
+    print "--- PRUEBA 4: Operadores Lógicos ---";
+    
+    print "true && false = ", (verdadero && falso);
+    print "true || false = ", (verdadero || falso);
+    print "!false = ", (!falso);
+    print "";
+    
+    // ============================================================
+    // PRUEBA 5: Operadores de Incremento/Decremento
+    // ============================================================
+    print "--- PRUEBA 5: Incremento/Decremento ---";
+    
+    contador: integer = 5;
+    print "contador inicial = ", contador;
+    print "++contador = ", ++contador;
+    print "contador después = ", contador;
+    print "contador++ = ", contador++;
+    print "contador final = ", contador;
+    print "--contador = ", --contador;
+    print "contador después = ", contador;
+    print "";
+    
+    // ============================================================
+    // PRUEBA 6: Estructura IF-ELSE
+    // ============================================================
+    print "--- PRUEBA 6: Estructura IF-ELSE ---";
+    
+    numero: integer = 15;
+    if (numero > 10) {
+        print numero, " es mayor que 10";
+    } else {
+        print numero, " es menor o igual que 10";
+    }
+    
+    if (es_par(numero)) {
+        print numero, " es par";
+    } else {
+        print numero, " es impar";
+    }
+    print "";
+    
+    // ============================================================
+    // PRUEBA 7: Estructura WHILE
+    // ============================================================
+    print "--- PRUEBA 7: Estructura WHILE ---";
+    
+    i: integer = 0;
+    print "Contando del 0 al 4 con WHILE:";
+    while (i < 5) {
+        print "  i = ", i;
+        i = i + 1;
+    }
+    print "";
+    
+    // ============================================================
+    // PRUEBA 8: Estructura DO-WHILE
+    // ============================================================
+    print "--- PRUEBA 8: Estructura DO-WHILE ---";
+    
+    j: integer = 0;
+    print "Contando del 0 al 2 con DO-WHILE:";
+    do {
+        print "  j = ", j;
+        j = j + 1;
+    } while (j < 3);
+    print "";
+    
+    // ============================================================
+    // PRUEBA 9: Estructura FOR
+    // ============================================================
+    print "--- PRUEBA 9: Estructura FOR ---";
+    
+    k: integer;
+    print "Contando del 0 al 4 con FOR:";
+    for (k = 0; k < 5; k++) {
+        print "  k = ", k;
+    }
+    print "";
+    
+    // ============================================================
+    // PRUEBA 10: Arrays
+    // ============================================================
+    print "--- PRUEBA 10: Arrays ---";
+    
+    numeros: array [5] integer = {10, 20, 30, 40, 50};
+    print "Array numeros = {10, 20, 30, 40, 50}";
+    print "numeros[0] = ", numeros[0];
+    print "numeros[2] = ", numeros[2];
+    print "numeros[4] = ", numeros[4];
+    
+    // Modificar elemento del array
+    numeros[1] = 25;
+    print "Después de numeros[1] = 25:";
+    print "numeros[1] = ", numeros[1];
+    print "";
+    
+    // ============================================================
+    // PRUEBA 11: Llamadas a Funciones
+    // ============================================================
+    print "--- PRUEBA 11: Llamadas a Funciones ---";
+    
+    resultado_suma_func: integer = suma(15, 27);
+    print "suma(15, 27) = ", resultado_suma_func;
+    
+    resultado_max: integer = maximo(100, 200);
+    print "maximo(100, 200) = ", resultado_max;
+    
+    resultado_factorial: integer = factorial(5);
+    print "factorial(5) = ", resultado_factorial;
+    
+    resultado_pot_func: integer = potencia(2, 8);
+    print "potencia(2, 8) = ", resultado_pot_func;
+    print "";
+    
+    // ============================================================
+    // PRUEBA 12: Funciones con Arrays
+    // ============================================================
+    print "--- PRUEBA 12: Funciones con Arrays ---";
+    
+    mi_array: array [6] integer = {1, 2, 3, 4, 5, 6};
+    total: integer = suma_array(mi_array, 6);
+    print "suma_array({1,2,3,4,5,6}, 6) = ", total;
+    
+    max_valor: integer = maximo_array(mi_array, 6);
+    print "maximo_array({1,2,3,4,5,6}, 6) = ", max_valor;
+    print "";
+    
+    // ============================================================
+    // PRUEBA 13: Recursión
+    // ============================================================
+    print "--- PRUEBA 13: Recursión ---";
+    
+    n_fib: integer = 8;
+    fact_result: integer = factorial(n_fib);
+    print "factorial(", n_fib, ") = ", fact_result;
+    
+    num_test: integer = 12345;
+    suma_dig: integer = suma_digitos(num_test);
+    print "suma_digitos(", num_test, ") = ", suma_dig;
+    print "";
+    
+    // ============================================================
+    // PRUEBA 14: Expresiones Complejas
+    // ============================================================
+    print "--- PRUEBA 14: Expresiones Complejas ---";
+    
+    a: integer = 10;
+    b: integer = 20;
+    c: integer = 30;
+    
+    expr1: integer = (a + b) * c;
+    print "(a + b) * c = (10 + 20) * 30 = ", expr1;
+    
+    expr2: integer = a + b * c;
+    print "a + b * c = 10 + 20 * 30 = ", expr2;
+    
+    expr3: boolean = (a < b) && (b < c);
+    print "(a < b) && (b < c) = (10 < 20) && (20 < 30) = ", expr3;
+    print "";
+    
+    // ============================================================
+    // PRUEBA 15: Anidamiento de Estructuras
+    // ============================================================
+    print "--- PRUEBA 15: Anidamiento de Estructuras ---";
+    
+    print "Tabla de multiplicar del 3:";
+    m: integer;
+    n: integer;
+    for (m = 1; m <= 3; m++) {
+        for (n = 1; n <= 3; n++) {
+            print "  ", m, " x ", n, " = ", (m * n);
+        }
+    }
+    print "";
+    
+    // ============================================================
+    // PRUEBA 16: Operaciones con Floats
+    // ============================================================
+    print "--- PRUEBA 16: Operaciones con Floats ---";
+    
+    f1: float = 3.5;
+    f2: float = 2.5;
+    f_suma: float = f1 + f2;
+    f_mult: float = f1 * f2;
+    
+    print f1, " + ", f2, " = ", f_suma;
+    print f1, " * ", f2, " = ", f_mult;
+    print "";
+    
+    // ============================================================
+    // FIN DE PRUEBAS
+    // ============================================================
+    print "==========================================";
+    print "TODAS LAS PRUEBAS COMPLETADAS";
+    print "==========================================";
+    
+    return 0;
+}
+

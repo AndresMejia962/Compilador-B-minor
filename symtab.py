@@ -71,7 +71,10 @@ class Symtab:
 		o FuncDeclaration)
 		'''
 		if name in self.entries:
-			if self.entries[name].type != value.type:
+			# Comparar sym_type si existe, sino comparar type
+			existing_type = getattr(self.entries[name], 'sym_type', getattr(self.entries[name], 'type', None))
+			new_type = getattr(value, 'sym_type', getattr(value, 'type', None))
+			if existing_type != new_type:
 				raise Symtab.SymbolConflictError()
 			else:
 				raise Symtab.SymbolDefinedError()
