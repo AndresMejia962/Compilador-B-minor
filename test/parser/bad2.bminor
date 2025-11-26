@@ -1,0 +1,13 @@
+// bad2.bminor
+// Un 'do' debe tener su 'while' correspondiente.
+
+main: function integer () = {
+    x: integer = 0;
+    
+    do {
+        print "Hola";
+        ++x;
+    }; // <-- ERROR: Falta la cláusula 'while (condicion)'
+    
+    return 0;
+}

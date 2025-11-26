@@ -1,0 +1,16 @@
+sum: function integer (n: integer) = {
+    i: integer;
+    total: integer;
+    total = 0;
+    for (i = 1; i <= n; i = i + 1) {
+        total = total + i;
+    }
+    return total;
+}
+
+main: function integer () = {
+    resultado: integer;
+    resultado = sum(10);
+    print resultado;  // debería imprimir 55
+    return 0;
+}

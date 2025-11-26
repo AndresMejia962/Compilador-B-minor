@@ -1,0 +1,8 @@
+// good3.bminor
+// Verificar el reconocimiento de flotantes sin parte entera y con notacion cientifica
+
+f1: float = .5;
+f2: float = 2e3;
+f3: float = 3.14e-2;
+f4: float = 2E3
+f5: float = 34E-2;

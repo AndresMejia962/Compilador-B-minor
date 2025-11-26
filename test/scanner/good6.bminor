@@ -1,0 +1,9 @@
+char c1 = '\n';
+char c2 = '\\';
+char c3 = '\'';
+
+//CHAR_LITERAL con \n
+
+//CHAR_LITERAL con \\
+
+//CHAR_LITERAL con \'

@@ -1,0 +1,38 @@
+# Entorno Virtual
+venv/
+env/
+ENV/
+.venv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Archivos generados
+output.ll
+*.exe
+*.out
+*.o
+
+# Logs
+*.log
+parser.log
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archivos temporales
+*.tmp
+*.bak
+

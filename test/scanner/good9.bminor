@@ -1,0 +1,13 @@
+int x = 5;
+// esto es un comentario
+x += 10;
+x--;   // decremento
+/* comentario
+   multilínea */
+bool y = (x > 0) && (x < 100);
+
+//Operadores: +=, --, &&, >, <
+
+//Comentarios ignorados (// ..., /* ... */)
+
+//Tokens correctos para int, bool, (, ), ;

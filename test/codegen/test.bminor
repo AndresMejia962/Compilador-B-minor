@@ -1,0 +1,94 @@
+ // Función factorial recursiva
+    factorial: function integer (n: integer) = {
+        if (n <= 1) {
+            return 1;
+        } else {
+            return n * factorial(n - 1);
+        }
+    }
+    
+    // Función suma
+    suma: function integer (a: integer, b: integer) = {
+        return a + b;
+    }
+    
+    // Función que usa arrays
+    suma_array: function integer (arr: array [] integer, size: integer) = {
+        total: integer = 0;
+        i: integer;
+        for (i = 0; i < size; i++) {
+            total = total + arr[i];
+        }
+        return total;
+    }
+    
+    // Función main
+    main: function integer () = {
+        // Prueba de variables
+        x: integer = 10;
+        y: integer = 20;
+        z: integer = suma(x, y);
+        
+        print "suma(", x, ", ", y, ") = ", z;
+        
+        // Prueba de factorial
+        n: integer = 5;
+        fact: integer = factorial(n);
+        print "factorial(", n, ") = ", fact;
+        
+        // Prueba de arrays
+        numeros: array [5] integer = {1, 2, 3, 4, 5};
+        total: integer = suma_array(numeros, 5);
+        print "suma del array = ", total;
+        
+        // Prueba de if/else
+        if (x < y) {
+            print x, " es menor que ", y;
+        } else {
+            print x, " es mayor o igual que ", y;
+        }
+        
+        // Prueba de while
+        contador: integer = 0;
+        while (contador < 3) {
+            print "Iteracion: ", contador;
+            contador = contador + 1;
+        }
+        
+        // Prueba de do-while
+        i: integer = 0;
+        do {
+            print "Do-while: ", i;
+            i = i + 1;
+        } while (i < 2);
+        
+        // Prueba de for
+        j: integer;
+        for (j = 0; j < 3; j++) {
+            print "For: ", j;
+        }
+        
+        // Prueba de tipos
+        f: float = 3.14159;
+        b: boolean = true;
+        c: char = 'A';
+        s: string = "Hello, World!";
+        
+        print "Float: ", f;
+        print "Boolean: ", b;
+        print "Char: ", c;
+        print "String: ", s;
+        
+        // Prueba de operadores
+        resultado: integer = 2 ^ 10;
+        print "2^10 = ", resultado;
+        
+        // Prueba de incremento/decremento
+        val: integer = 5;
+        print "val = ", val;
+        print "++val = ", ++val;
+        print "val++ = ", val++;
+        print "val = ", val;
+        
+        return 0;
+    }

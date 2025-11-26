@@ -1,0 +1,7 @@
+main: function void() = {
+    a: boolean = true;
+    b: boolean = false;
+    print a && b;
+    print a || b;
+    print !b;
+}

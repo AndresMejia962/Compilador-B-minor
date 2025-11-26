@@ -1,0 +1,11 @@
+// bad3.bminor
+// La condición de un bucle no puede estar vacía.
+
+main: function integer () = {
+
+    while () { // <-- ERROR: Falta la expresión en la condición
+        print "Esto no debería parsear";
+    }
+    
+    return 0;
+}

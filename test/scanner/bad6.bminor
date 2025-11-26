@@ -1,0 +1,2 @@
+float 2x = 5.0;
+//Un identificador no puede comenzar con un número. El analizador debería reportar un error léxico en 2x.

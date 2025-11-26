@@ -1,0 +1,10 @@
+// good2.bminor
+// Verificar que se descarten los comentario de una linea y los bloques de comentarios
+
+//Comentario de una linea
+a: integer = 5;
+/*  bloque de 
+    comentarios. */
+b: integer = 10; // El token 'b' debe estar en la linea 5.
+/* bloque de 
+    comentarios*/

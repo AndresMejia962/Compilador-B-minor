@@ -1,0 +1,32 @@
+
+main: function integer () = {
+    print "--- Test de Robustez ---";
+    
+    // Caso 1: Operación aritmética con tipos incorrectos (debería fallar)
+    // x: integer = 10;
+    // s: string = "hola";
+    // print "x + s = ", x + s; 
+    
+    // Nota: El typechecker estático probablemente atraparía esto si se ejecuta --check.
+    // Pero el intérprete en Python es dinámico, así que si saltamos el chequeo estático o si hay bugs,
+    // queremos ver cómo se comporta.
+    
+    // Vamos a forzar un error de tiempo de ejecución que el typechecker podría no ver tan fácilmente
+    // o simplemente probar la validación dinámica del intérprete.
+    
+    print "Intentando sumar numero y string (simulado dinamicamente si fuera posible)";
+    // En bminor estricto, esto no compila. Pero para probar el intérprete, asumiremos que
+    // queremos mensajes de error claros desde el runtime de Python si algo se escapa.
+    
+    // Como bminor es estáticamente tipado, es difícil "engañar" al typechecker para que pase algo inválido
+    // a menos que usemos características que no chequee bien.
+    
+    // Sin embargo, el objetivo es mejorar el código de interp.py.
+    // Así que escribiremos código que sea sintácticamente válido.
+    
+    a: integer = 10;
+    b: integer = 20;
+    print "a + b = ", a + b;
+    
+    return 0;
+}

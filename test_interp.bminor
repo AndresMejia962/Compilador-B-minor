@@ -1,0 +1,39 @@
+// Archivo de prueba simple para el intérprete
+
+main: function integer () = {
+    print "Hola, mundo desde el intérprete!";
+    print "";
+    
+    // Prueba de variables
+    x: integer = 10;
+    y: integer = 20;
+    print "x = ", x;
+    print "y = ", y;
+    print "x + y = ", x + y;
+    print "";
+    
+    // Prueba de operaciones
+    resultado: integer = x * y;
+    print "x * y = ", resultado;
+    print "";
+    
+    // Prueba de if
+    if (x < y) {
+        print "x es menor que y";
+    } else {
+        print "x es mayor o igual que y";
+    }
+    print "";
+    
+    // Prueba de while
+    i: integer = 0;
+    print "Contando del 0 al 4:";
+    while (i < 5) {
+        print "  i = ", i;
+        i = i + 1;
+    }
+    print "";
+    
+    return 0;
+}
+

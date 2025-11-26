@@ -1,0 +1,6 @@
+int __var123 = 100;
+float x_1_2 = 0.99e-10;
+double _tmp = 3.14159;  
+
+
+//ID válidos: __var123, x_1_2
