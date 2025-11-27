@@ -267,10 +267,45 @@ class Interpreter(Visitor):
     self.env[node.name] = expr
 
   def visit(self, node: ArrayDecl):
+    # Evaluar el tamaño del array si existe
+    # El tamaño puede estar en node.size o en node.type.size
+    array_size = 0
+    size_expr = None
+    if node.size:
+      size_expr = node.size
+    elif hasattr(node.type, 'size') and node.type.size:
+      size_expr = node.type.size
+    
+    if size_expr:
+      array_size = size_expr.accept(self)
+      if not isinstance(array_size, int):
+        self.error(node, f"El tamaño del array debe ser un entero, se obtuvo {type(array_size).__name__}")
+        array_size = 0
+    
+    # Si hay valores iniciales, usarlos
     if node.value:
       values = [val.accept(self) for val in node.value]
+      # Asegurar que el array tenga el tamaño correcto
+      if len(values) < array_size:
+        # Rellenar con valores por defecto
+        default_value = 0
+        if node.type.element_type.name == 'float':
+          default_value = 0.0
+        elif node.type.element_type.name == 'boolean':
+          default_value = False
+        values.extend([default_value] * (array_size - len(values)))
+      elif len(values) > array_size:
+        # Truncar si hay más valores que tamaño
+        values = values[:array_size]
     else:
-      values = []
+      # Crear array del tamaño especificado con valores por defecto
+      default_value = 0
+      if node.type.element_type.name == 'float':
+        default_value = 0.0
+      elif node.type.element_type.name == 'boolean':
+        default_value = False
+      values = [default_value] * array_size
+    
     self.env[node.name] = values
 
   def visit(self, node: Program):
@@ -292,13 +327,21 @@ class Interpreter(Visitor):
 
   # Statements
   def visit(self, node: PrintStmt):
+    output_parts = []
     for expr in node.values:
       value = expr.accept(self)
       if isinstance(value, str):
         value = value.replace('\\n', '\n')
         value = value.replace('\\t', '\t')
-      print(value, end='')
-    print()  # Nueva línea al final
+      output_parts.append(str(value))
+    
+    # Imprimir todos los valores juntos en una sola línea
+    output = ''.join(output_parts)
+    # Si el último carácter es \n, no agregar otro salto de línea
+    if output.endswith('\n'):
+      print(output, end='')
+    else:
+      print(output)
 
   def visit(self, node: WhileStmt):
     while _is_truthy(node.condition.accept(self)):
@@ -545,9 +588,13 @@ class Interpreter(Visitor):
       raise
 
   def visit(self, node: VarLocation):
-    if node.name not in self.env:
+    # Buscar la variable en el entorno de forma segura
+    try:
+      # Intentar obtener el valor directamente
+      return self.env[node.name]
+    except KeyError:
       self.error(node, f"Variable '{node.name}' no definida")
-    return self.env[node.name]
+      return None
 
   def visit(self, node: ArraySubscript):
     # Obtener el array del entorno

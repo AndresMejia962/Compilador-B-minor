@@ -48,7 +48,7 @@ class TestSuite:
     
     def run_all_tests(self):
         """Ejecuta todos los casos de prueba."""
-        console.print("\n[bold blue]🧪 Ejecutando Suite de Pruebas del Parser B-Minor[/bold blue]\n")
+        console.print("\n[bold blue]Ejecutando Suite de Pruebas del Parser B-Minor[/bold blue]\n")
         
         with Progress(
             SpinnerColumn(),
@@ -62,7 +62,7 @@ class TestSuite:
                 progress.update(task, completed=i, description=f"Prueba: {test_case.name}")
                 self.run_single_test(test_case)
                 
-            progress.update(task, completed=len(self.test_cases), description="✅ Pruebas completadas")
+            progress.update(task, completed=len(self.test_cases), description="Pruebas completadas")
         
         self.show_results()
     
@@ -106,8 +106,8 @@ class TestSuite:
         table.add_column("Descripción", style="dim")
         
         for test_case in self.test_cases:
-            status = "✅ PASS" if test_case.result else "❌ FAIL"
-            expected = "✅ Éxito" if test_case.should_pass else "❌ Error"
+            status = "PASS" if test_case.result else "FAIL"
+            expected = "Éxito" if test_case.should_pass else "Error"
             
             # Truncar nombre si es muy largo
             name = test_case.name if len(test_case.name) <= 30 else test_case.name[:27] + "..."
@@ -127,15 +127,15 @@ class TestSuite:
         
         summary_style = "green" if pass_rate >= 80 else "yellow" if pass_rate >= 60 else "red"
         
-        console.print(f"\n[bold {summary_style}]📊 Resumen: {self.passed}/{total} pruebas pasaron ({pass_rate:.1f}%)[/bold {summary_style}]")
+        console.print(f"\n[bold {summary_style}]Resumen: {self.passed}/{total} pruebas pasaron ({pass_rate:.1f}%)[/bold {summary_style}]")
         
         if self.failed > 0:
-            console.print(f"[red]❌ {self.failed} pruebas fallaron[/red]")
+            console.print(f"[red]{self.failed} pruebas fallaron[/red]")
             self.show_failed_tests()
     
     def show_failed_tests(self):
         """Muestra detalles de las pruebas fallidas."""
-        console.print("\n[bold red]🔍 Detalles de Pruebas Fallidas:[/bold red]")
+        console.print("\n[bold red]Detalles de Pruebas Fallidas:[/bold red]")
         
         for test_case in self.test_cases:
             if not test_case.result:
@@ -147,7 +147,7 @@ class TestSuite:
                 
                 console.print(Panel(
                     panel_content,
-                    title=f"❌ {test_case.name}",
+                    title=f"FAIL: {test_case.name}",
                     border_style="red"
                 ))
 
@@ -530,19 +530,19 @@ def create_test_suite():
 def analyze_ast(ast, show_details=False):
     """Analiza el AST generado y muestra información."""
     if not ast:
-        console.print("[red]❌ No se pudo generar el AST[/red]")
+        console.print("[red]No se pudo generar el AST[/red]")
         return
     
-    console.print("[bold green]✅ AST generado exitosamente[/bold green]")
+    console.print("[bold green]AST generado exitosamente[/bold green]")
     
     if show_details:
-        console.print("\n[bold]🌳 Estructura del AST:[/bold]")
+        console.print("\n[bold]Estructura del AST:[/bold]")
         tree = ast.pretty()
         console.print(tree)
     
     # Contar nodos
     node_count = count_nodes(ast)
-    console.print(f"\n📊 Total de nodos en el AST: {node_count}")
+    console.print(f"\nTotal de nodos en el AST: {node_count}")
 
 def count_nodes(node):
     """Cuenta el número total de nodos en el AST."""
@@ -564,7 +564,7 @@ def count_nodes(node):
 
 def test_single_file(filepath, show_ast=False):
     """Prueba un archivo individual."""
-    console.print(f"\n[bold blue]🔍 Probando archivo: {filepath}[/bold blue]")
+    console.print(f"\n[bold blue]Probando archivo: {filepath}[/bold blue]")
     
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
@@ -574,15 +574,15 @@ def test_single_file(filepath, show_ast=False):
         ast = parse(code)
         
         if errors_detected():
-            console.print(f"[red]❌ Se encontraron {errors_detected()} errores[/red]")
+            console.print(f"[red]Se encontraron {errors_detected()} errores[/red]")
         else:
-            console.print("[green]✅ Análisis sintáctico exitoso[/green]")
+            console.print("[green]Análisis sintáctico exitoso[/green]")
             analyze_ast(ast, show_ast)
             
     except FileNotFoundError:
-        console.print(f"[red]❌ Archivo no encontrado: {filepath}[/red]")
+        console.print(f"[red]Archivo no encontrado: {filepath}[/red]")
     except Exception as e:
-        console.print(f"[red]❌ Error: {str(e)}[/red]")
+        console.print(f"[red]Error: {str(e)}[/red]")
 
 def main():
     """Función principal del programa de pruebas."""
@@ -612,7 +612,7 @@ def main():
 
 def interactive_mode():
     """Modo interactivo para probar código."""
-    console.print("[bold blue]🎮 Modo Interactivo - Parser B-Minor[/bold blue]")
+    console.print("[bold blue]Modo Interactivo - Parser B-Minor[/bold blue]")
     console.print("Escribe código B-Minor (Ctrl+D para terminar, 'exit' para salir)")
     
     while True:
@@ -640,16 +640,16 @@ def interactive_mode():
             ast = parse(code)
             
             if errors_detected():
-                console.print(f"[red]❌ Se encontraron {errors_detected()} errores[/red]")
+                console.print(f"[red]Se encontraron {errors_detected()} errores[/red]")
             else:
-                console.print("[green]✅ Análisis sintáctico exitoso[/green]")
+                console.print("[green]Análisis sintáctico exitoso[/green]")
                 analyze_ast(ast, True)
                 
         except KeyboardInterrupt:
-            console.print("\n[yellow]👋 ¡Hasta luego![/yellow]")
+            console.print("\n[yellow]¡Hasta luego![/yellow]")
             break
         except Exception as e:
-            console.print(f"[red]❌ Error inesperado: {str(e)}[/red]")
+            console.print(f"[red]Error inesperado: {str(e)}[/red]")
 
 if __name__ == '__main__':
     main()

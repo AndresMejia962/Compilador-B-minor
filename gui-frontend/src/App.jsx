@@ -84,7 +84,7 @@ function App() {
       if (data.success) {
         setFileContent(editedContent)
         setIsEditing(false)
-        setOutput('✅ Archivo guardado exitosamente\n')
+        setOutput('Archivo guardado exitosamente\n')
       } else {
         setOutput(`Error al guardar: ${data.error}\n`)
       }
@@ -148,7 +148,7 @@ function App() {
         if (data.compile_output !== undefined || data.compile_errors !== undefined) {
           let compileInfo = ''
           if (data.compile_success) {
-            compileInfo = '✅ Compilacion exitosa!\n\n'
+            compileInfo = 'Compilacion exitosa!\n\n'
             
             // Si hay errores de compilación (warnings), mostrarlos
             if (data.compile_errors) {
@@ -159,9 +159,9 @@ function App() {
             if (data.execution_output !== undefined) {
               compileInfo += '--- Ejecucion del Programa ---\n'
               if (data.execution_success) {
-                compileInfo += '✅ Ejecucion exitosa:\n\n'
+                compileInfo += 'Ejecucion exitosa:\n\n'
               } else {
-                compileInfo += '❌ Error en la ejecucion:\n\n'
+                compileInfo += 'Error en la ejecucion:\n\n'
               }
               
               if (data.execution_output) {
@@ -172,7 +172,7 @@ function App() {
               }
             }
           } else {
-            compileInfo = '❌ Error en la compilacion:\n\n'
+            compileInfo = 'Error en la compilacion:\n\n'
             if (data.compile_output) {
               compileInfo += data.compile_output
             }
@@ -196,7 +196,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>🔧 Compilador B-Minor</h1>
+        <h1>Compilador B-Minor</h1>
         <p>Interfaz Grafica Educativa</p>
       </header>
 
@@ -204,7 +204,7 @@ function App() {
         {/* Panel izquierdo: Seleccion y opciones */}
         <div className="left-panel">
           <div className="card">
-            <h2>📁 Archivo</h2>
+            <h2>Archivo</h2>
             <select 
               value={selectedFile} 
               onChange={(e) => setSelectedFile(e.target.value)}
@@ -220,14 +220,14 @@ function App() {
           </div>
 
           <div className="card">
-            <h2>⚙️ Opciones</h2>
+            <h2>Opciones</h2>
             <label className="checkbox-label">
               <input 
                 type="checkbox" 
                 checked={debug} 
                 onChange={(e) => setDebug(e.target.checked)}
               />
-              <span>🐛 Modo Debug</span>
+              <span>Modo Debug</span>
             </label>
             <label className="checkbox-label">
               <input 
@@ -235,47 +235,47 @@ function App() {
                 checked={profile} 
                 onChange={(e) => setProfile(e.target.checked)}
               />
-              <span>📊 Perfilamiento</span>
+              <span>Perfilamiento</span>
             </label>
           </div>
 
           <div className="card">
-            <h2>🚀 Acciones</h2>
+            <h2>Acciones</h2>
             <div className="button-group">
               <button 
                 onClick={() => runCommand('scan')} 
                 disabled={loading || !selectedFile}
                 className="btn btn-primary"
               >
-                🔍 Scan
+                Scan
               </button>
               <button 
                 onClick={() => runCommand('parse')} 
                 disabled={loading || !selectedFile}
                 className="btn btn-primary"
               >
-                🌳 Parse
+                Parse
               </button>
               <button 
                 onClick={() => runCommand('check')} 
                 disabled={loading || !selectedFile}
                 className="btn btn-primary"
               >
-                ✅ Check
+                Check
               </button>
               <button 
                 onClick={() => runCommand('codegen')} 
                 disabled={loading || !selectedFile}
                 className="btn btn-success"
               >
-                ⚡ Codegen
+                Codegen
               </button>
               <button 
                 onClick={() => runCommand('interp')} 
                 disabled={loading || !selectedFile}
                 className="btn btn-success"
               >
-                ▶️ Interp
+                Interp
               </button>
             </div>
           </div>
@@ -285,7 +285,7 @@ function App() {
         <div className="right-panel">
           <div className="card">
             <div className="editor-header">
-              <h2>📝 Editor de Codigo</h2>
+              <h2>Editor de Codigo</h2>
               <div className="editor-actions">
                 {isEditing && editedContent !== fileContent && (
                   <span className="unsaved-badge">● Sin guardar</span>
@@ -295,7 +295,7 @@ function App() {
                     onClick={() => setIsEditing(true)}
                     className="btn btn-secondary btn-small"
                   >
-                    ✏️ Editar
+                    Editar
                   </button>
                 ) : (
                   <>
@@ -303,7 +303,7 @@ function App() {
                       onClick={saveFile}
                       className="btn btn-success btn-small"
                     >
-                      💾 Guardar
+                      Guardar
                     </button>
                     <button 
                       onClick={() => {
@@ -312,7 +312,7 @@ function App() {
                       }}
                       className="btn btn-secondary btn-small"
                     >
-                      ❌ Cancelar
+                      Cancelar
                     </button>
                   </>
                 )}
@@ -340,16 +340,16 @@ function App() {
             </div>
             {!selectedFile && (
               <div className="editor-hint">
-                💡 Escribe codigo B-Minor aqui o selecciona un archivo arriba
+                Escribe codigo B-Minor aqui o selecciona un archivo arriba
               </div>
             )}
           </div>
 
           <div className="card">
-            <h2>📤 Salida</h2>
+            <h2>Salida</h2>
             <div className="output-container">
               {loading ? (
-                <div className="loading">⏳ Procesando...</div>
+                <div className="loading">Procesando...</div>
               ) : (
                 <pre className="output">{output || 'La salida aparecera aqui...'}</pre>
               )}
@@ -361,13 +361,13 @@ function App() {
               }} 
               className="btn btn-secondary btn-small"
             >
-              🗑️ Limpiar
+              Limpiar
             </button>
           </div>
 
           {compileOutput && (
             <div className="card">
-              <h2>⚡ Resultado de Compilacion LLVM</h2>
+              <h2>Resultado de Compilacion LLVM</h2>
               <div className="output-container">
                 <pre className="output">{compileOutput}</pre>
               </div>

@@ -41,6 +41,16 @@ class SemanticAnalyzer(Visitor):
         read_string_decl.sym_type = 'string'
         symbol_table.symbols['read_string'] = read_string_decl
         
+        # read_float: function float () = {}
+        read_float_decl = FuncDecl(
+            name='read_float',
+            type=SimpleType('float'),
+            params=[],
+            body=None
+        )
+        read_float_decl.sym_type = 'float'
+        symbol_table.symbols['read_float'] = read_float_decl
+        
         # sqrt: function float (x: float) = {}
         sqrt_decl = FuncDecl(
             name='sqrt',
@@ -91,6 +101,17 @@ class SemanticAnalyzer(Visitor):
         )
         length_decl.sym_type = 'integer'
         symbol_table.symbols['length'] = length_decl
+        
+        # array_length: function integer (arr: array [] integer) = {}
+        # Alias de length para arrays
+        array_length_decl = FuncDecl(
+            name='array_length',
+            type=SimpleType('integer'),
+            params=[Param('arr', ArrayType(SimpleType('integer')))],
+            body=None
+        )
+        array_length_decl.sym_type = 'integer'
+        symbol_table.symbols['array_length'] = array_length_decl
 
     # =====================================================================
     # Procesamiento de Programa y Bloques

@@ -24,6 +24,16 @@ def read_integer(*args):
     except ValueError:
         raise CallError(f"Error: '{value}' no es un numero entero valido")
 
+def read_float(*args):
+    """Lee un numero flotante del usuario"""
+    if len(args) > 0:
+        raise CallError("read_float() no acepta argumentos")
+    try:
+        value = input()
+        return float(value)
+    except ValueError:
+        raise CallError(f"Error: '{value}' no es un numero flotante valido")
+
 def read_string(*args):
     """Lee una cadena de texto del usuario"""
     if len(args) > 0:
@@ -83,11 +93,13 @@ def length(*args):
 # Funciones built-in
 builtins = {
     'read_integer': read_integer,
+    'read_float': read_float,
     'read_string': read_string,
     'sqrt': sqrt,
     'abs': abs_func,  # Usar abs_func para evitar conflicto con abs() de Python
     'max': max_func,  # Usar max_func para evitar conflicto con max() de Python
     'min': min_func,  # Usar min_func para evitar conflicto con min() de Python
     'length': length,
+    'array_length': length,  # Alias de length para arrays
 }
 
