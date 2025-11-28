@@ -10,12 +10,16 @@ __pycache__/
 *$py.class
 *.so
 .Python
+*.pyc
+*.pyo
+*.pyd
 
 # Archivos generados
 output.ll
 *.exe
 *.out
 *.o
+*.ll
 
 # Logs
 *.log
@@ -35,4 +39,15 @@ Thumbs.db
 # Archivos temporales
 *.tmp
 *.bak
+
+# Node modules (en raíz si existe)
+node_modules/
+package-lock.json
+
+# Archivos de prueba compilados
+test_program.exe
+program.exe
+ejercicio.exe
+ejercicio_correcto.exe
+knight.exe
 
